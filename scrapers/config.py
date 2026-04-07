@@ -80,9 +80,9 @@ SCRAPER_REGISTRY = {
 }
 
 # ---------- Global Settings ----------
-MAX_PAGES = 10  # 10ページ×50件=500件/サイト
+MAX_PAGES = 3  # Render Free: メモリ節約。Starter($7/月)なら10に引き上げ可
 REQUEST_INTERVAL_SEC = 1.0
-PAGE_TIMEOUT_MS = 60000
+PAGE_TIMEOUT_MS = 30000  # 30秒（Render Freeのレスポンス時間制約対策）
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"

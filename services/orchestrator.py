@@ -1,7 +1,6 @@
-"""Orchestrator: run scrapers in parallel and merge results."""
+"""Orchestrator: run scrapers sequentially to save memory on Render."""
 from __future__ import annotations
 
-import asyncio
 import importlib
 import logging
 import time
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def _load_scrapers():
-    """Dynamically load all scrapers from SCRAPER_REGISTRY (E5: plugin arch)."""
+    """Dynamically load all scrapers from SCRAPER_REGISTRY."""
     instances = []
     for site_name, entry in SCRAPER_REGISTRY.items():
         module = importlib.import_module(entry["module"])
@@ -25,24 +24,22 @@ def _load_scrapers():
 
 
 async def run_search(query: SearchQuery) -> SearchResponse:
-    """Execute all scrapers in parallel, merge, dedup, and return response."""
+    """Execute scrapers sequentially (memory-safe for Render Free tier)."""
     start = time.time()
 
     scrapers = _load_scrapers()
 
-    # Run all scrapers concurrently
-    tasks = [_safe_scrape(s, query) for s in scrapers]
-    results = await asyncio.gather(*tasks)
-
-    # Merge
     all_properties: list[Property] = []
     errors: list[ScraperError] = []
     by_source: dict[str, int] = {}
 
-    for props, errs, site_name in results:
+    # Run sequentially to avoid 3 Chromium instances at once
+    for scraper in scrapers:
+        props, errs, site_name = await _safe_scrape(scraper, query)
         all_properties.extend(props)
         errors.extend(errs)
         by_source[site_name] = len(props)
+        logger.info("%s: %d properties", site_name, len(props))
 
     # Dedup
     dup_count = flag_duplicates(all_properties)
@@ -62,25 +59,19 @@ async def run_search(query: SearchQuery) -> SearchResponse:
 
 
 async def _safe_scrape(
-    scraper, query: SearchQuery, max_retries: int = 2
+    scraper, query: SearchQuery, max_retries: int = 1
 ) -> tuple[list[Property], list[ScraperError], str]:
-    """Run a single scraper with retry + error handling (E4: site failure isolation)."""
+    """Run a single scraper with error handling."""
     site_name = scraper.site_name
-    last_exc = None
-    for attempt in range(1, max_retries + 1):
-        try:
-            props = await scraper.search(query)
-            return (props, [], site_name)
-        except Exception as exc:
-            last_exc = exc
-            logger.warning("%s attempt %d/%d failed: %s", site_name, attempt, max_retries, exc)
-            if attempt < max_retries:
-                await asyncio.sleep(2 ** attempt)  # exponential backoff
-    logger.error("%s failed after %d retries: %s", site_name, max_retries, last_exc)
-    error = ScraperError(
-        siteName=site_name,
-        errorType="SITE_DOWN",
-        message=str(last_exc),
-        retryCount=max_retries,
-    )
-    return ([], [error], site_name)
+    try:
+        props = await scraper.search(query)
+        return (props, [], site_name)
+    except Exception as exc:
+        logger.error("%s failed: %s", site_name, exc)
+        error = ScraperError(
+            siteName=site_name,
+            errorType="SITE_DOWN",
+            message=str(exc),
+            retryCount=0,
+        )
+        return ([], [error], site_name)
