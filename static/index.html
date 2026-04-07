@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不動産投資物件アグリゲーター</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .skeleton { background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  .duplicate-border { border-left: 4px solid #f59e0b; }
+  .no-yield-border { border-left: 4px solid #d1d5db; }
+  .card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); transform: translateY(-1px); }
+  .transition-card { transition: box-shadow 0.2s, transform 0.2s; }
+</style>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#2563eb',
+        homes: '#f97316',
+        suumo: '#22c55e',
+        frenzu: '#3b82f6',
+      }
+    }
+  }
+}
+</script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+  <div class="max-w-screen-2xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+      <div>
+        <h1 class="text-lg font-bold text-gray-800 leading-tight">不動産投資物件アグリゲーター</h1>
+        <p class="text-xs text-gray-400 leading-tight">HOME'S・SUUMO・ふれんず 横断検索</p>
+      </div>
+    </div>
+    <button id="favHeaderBtn" onclick="toggleFavFilter()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-sm">
+      <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span>お気に入り</span>
+      <span id="favCount" class="bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+    </button>
+  </div>
+</header>
+
+<div class="max-w-screen-2xl mx-auto flex">
+
+  <!-- Sidebar -->
+  <aside class="w-72 flex-shrink-0 bg-white border-r border-gray-200 p-5 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto">
+    <h2 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-1.5">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+      検索条件
+    </h2>
+
+    <!-- === 常時表示: 5項目 === -->
+
+    <!-- 1. Area -->
+    <div class="mb-4">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">エリア</label>
+      <select id="filterArea" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+        <option value="">全エリア</option>
+        <option value="博多区">福岡市博多区</option>
+        <option value="中央区">福岡市中央区</option>
+        <option value="南区">福岡市南区</option>
+        <option value="東区">福岡市東区</option>
+        <option value="西区">福岡市西区</option>
+        <option value="早良区">福岡市早良区</option>
+      </select>
+    </div>
+
+    <!-- 2. Price -->
+    <div class="mb-4">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">価格帯（万円）</label>
+      <div class="flex gap-2 items-center">
+        <select id="priceMin" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+          <option value="">指定なし</option>
+          <option value="50">50万円</option>
+          <option value="100">100万円</option>
+          <option value="300">300万円</option>
+          <option value="500">500万円</option>
+          <option value="1000">1,000万円</option>
+          <option value="2000">2,000万円</option>
+          <option value="3000">3,000万円</option>
+          <option value="5000">5,000万円</option>
+          <option value="10000">1億円</option>
+        </select>
+        <span class="text-gray-400 text-sm">〜</span>
+        <select id="priceMax" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+          <option value="">指定なし</option>
+          <option value="500">500万円</option>
+          <option value="1000">1,000万円</option>
+          <option value="2000">2,000万円</option>
+          <option value="3000">3,000万円</option>
+          <option value="5000">5,000万円</option>
+          <option value="10000">1億円</option>
+          <option value="20000">2億円</option>
+          <option value="30000">3億円</option>
+          <option value="50000">5億円</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 3. Yield -->
+    <div class="mb-4">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">利回り下限（%）</label>
+      <input id="yieldMin" type="number" step="0.1" placeholder="例: 6.0" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+    </div>
+
+    <!-- 4. Property Type -->
+    <div class="mb-4">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">物件種別</label>
+      <div class="flex flex-col gap-1.5" id="typeChecks">
+        <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="区分マンション" class="rounded text-primary"> 区分マンション</label>
+        <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="一棟アパート" class="rounded text-primary"> 一棟アパート</label>
+        <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="一棟マンション" class="rounded text-primary"> 一棟マンション</label>
+        <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="戸建" class="rounded text-primary"> 戸建</label>
+      </div>
+    </div>
+
+    <!-- 5. Age -->
+    <div class="mb-4">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">完成時期（築年数）</label>
+      <select id="filterAge" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+        <option value="">指定なし</option>
+        <option value="1">新築</option>
+        <option value="3">3年以内</option>
+        <option value="5">5年以内</option>
+        <option value="10">10年以内</option>
+        <option value="15">15年以内</option>
+        <option value="20">20年以内</option>
+        <option value="25">25年以内</option>
+        <option value="30">30年以内</option>
+        <option value="35">35年以内</option>
+        <option value="40">40年以内</option>
+      </select>
+    </div>
+
+    <!-- === 詳細条件: 折りたたみ === -->
+    <details class="mb-4">
+      <summary class="text-xs font-semibold text-gray-600 cursor-pointer hover:text-primary py-1">▶ 詳細条件</summary>
+      <div class="mt-3 space-y-4">
+
+        <!-- Layout (間取り 14種) -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">間取り（タイプ）</label>
+          <div class="grid grid-cols-4 gap-1" id="layoutChecks">
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="1R" class="rounded text-primary"> 1R</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="1K" class="rounded text-primary"> 1K</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="1DK" class="rounded text-primary"> 1DK</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="1LDK" class="rounded text-primary"> 1LDK</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="2K" class="rounded text-primary"> 2K</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="2DK" class="rounded text-primary"> 2DK</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="2LDK" class="rounded text-primary"> 2LDK</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="3K" class="rounded text-primary"> 3K</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="3DK" class="rounded text-primary"> 3DK</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="3LDK" class="rounded text-primary"> 3LDK</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="4K" class="rounded text-primary"> 4K</label>
+            <label class="flex items-center gap-1 text-xs"><input type="checkbox" value="4DK" class="rounded text-primary"> 4DK</label>
+            <label class="flex items-center gap-1 text-xs col-span-2"><input type="checkbox" value="4LDK以上" class="rounded text-primary"> 4LDK以上</label>
+            <label class="flex items-center gap-1 text-xs col-span-2"><input type="checkbox" value="一棟" class="rounded text-primary"> 一棟</label>
+          </div>
+        </div>
+
+        <!-- Area (面積) -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">面積</label>
+          <select id="filterAreaSqm" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+            <option value="">指定なし</option>
+            <option value="10">10m²以上</option>
+            <option value="15">15m²以上</option>
+            <option value="20">20m²以上</option>
+            <option value="25">25m²以上</option>
+            <option value="30">30m²以上</option>
+            <option value="40">40m²以上</option>
+            <option value="50">50m²以上</option>
+            <option value="60">60m²以上</option>
+            <option value="80">80m²以上</option>
+            <option value="100">100m²以上</option>
+          </select>
+        </div>
+
+        <!-- Walk minutes -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">駅からの徒歩</label>
+          <select id="filterWalk" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+            <option value="">指定なし</option>
+            <option value="1">1分以内</option>
+            <option value="3">3分以内</option>
+            <option value="5">5分以内</option>
+            <option value="7">7分以内</option>
+            <option value="10">10分以内</option>
+            <option value="15">15分以内</option>
+            <option value="20">20分以内</option>
+          </select>
+        </div>
+
+        <!-- Structure -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">構造</label>
+          <div class="flex flex-col gap-1.5" id="structureChecks">
+            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="RC" class="rounded text-primary"> RC（鉄筋コンクリート）</label>
+            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="SRC" class="rounded text-primary"> SRC（鉄骨鉄筋）</label>
+            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="鉄骨" class="rounded text-primary"> 鉄骨造</label>
+            <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" value="木造" class="rounded text-primary"> 木造</label>
+          </div>
+        </div>
+
+        <!-- Exclude no yield -->
+        <div>
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input id="excludeNoYield" type="checkbox" class="rounded text-primary focus:ring-primary">
+            <span class="font-semibold text-gray-700">利回り情報なしを除外</span>
+          </label>
+        </div>
+
+      </div>
+    </details>
+
+    <!-- Fav only toggle (常時表示エリア最下部) -->
+    <div class="mb-5">
+      <label class="flex items-center gap-2 text-sm cursor-pointer">
+        <input id="favOnly" type="checkbox" class="rounded text-yellow-500 focus:ring-yellow-400">
+        <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span class="font-semibold text-gray-700">お気に入りのみ表示</span>
+      </label>
+    </div>
+
+    <!-- Search Button -->
+    <button id="searchBtn" onclick="handleSearch()" class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      物件を検索
+    </button>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6">
+    <!-- Welcome state -->
+    <div id="welcomeState">
+      <!-- お気に入り物件セクション (JS で動的に表示/非表示) -->
+      <div id="welcomeFavSection" class="hidden mb-8">
+        <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          お気に入り物件（<span id="welcomeFavCount">0</span>件）
+        </h2>
+        <div id="welcomeFavGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6"></div>
+        <div class="flex justify-center">
+          <button onclick="handleSearch()" class="bg-primary hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg text-sm transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            物件を検索
+          </button>
+        </div>
+      </div>
+      <!-- お気に入りがない場合の従来メッセージ -->
+      <div id="welcomeEmpty" class="flex flex-col items-center justify-center py-24 text-center">
+        <svg class="w-20 h-20 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <p class="text-gray-500 text-lg font-medium mb-1">条件を入力して「物件を検索」をクリック</p>
+        <p class="text-gray-400 text-sm">HOME'S・SUUMO・ふれんずから投資物件を一括取得します</p>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loadingState" class="hidden">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
+        <span class="text-gray-600 text-sm font-medium" id="loadingText">HOME'S・SUUMO・ふれんずから物件を取得中...</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg p-4 h-48 skeleton"></div>
+        <div class="bg-white rounded-lg p-4 h-48 skeleton"></div>
+        <div class="bg-white rounded-lg p-4 h-48 skeleton"></div>
+        <div class="bg-white rounded-lg p-4 h-48 skeleton"></div>
+        <div class="bg-white rounded-lg p-4 h-48 skeleton"></div>
+        <div class="bg-white rounded-lg p-4 h-48 skeleton"></div>
+      </div>
+    </div>
+
+    <!-- Results state -->
+    <div id="resultsState" class="hidden">
+      <!-- Toolbar (サマリー統合: 件数 + サイト別内訳 + ソート) -->
+      <div class="flex items-center justify-between mb-4 bg-white border border-gray-200 rounded-lg px-4 py-2.5">
+        <p class="text-sm text-gray-600">
+          <span id="resultCount" class="font-bold text-gray-800 text-base">0</span>件の物件
+          <span id="siteBreakdown" class="text-gray-400 ml-1"></span>
+        </p>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-gray-500">並び替え:</label>
+          <select id="sortSelect" onchange="applyFiltersAndSort()" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+            <option value="yieldDesc">利回り（高い順）</option>
+            <option value="yieldAsc">利回り（低い順）</option>
+            <option value="priceAsc">価格（安い順）</option>
+            <option value="priceDesc">価格（高い順）</option>
+            <option value="ageAsc">築年数（新しい順）</option>
+            <option value="ageDesc">築年数（古い順）</option>
+            <option value="dateDesc">掲載日（新しい順）</option>
+            <option value="dateAsc">掲載日（古い順）</option>
+          </select>
+        </div>
+      </div>
+      <!-- Card Grid -->
+      <div id="cardGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+      <!-- Empty state -->
+      <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+        <svg class="w-16 h-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/></svg>
+        <p class="text-gray-500 font-medium">条件に合う物件が見つかりません</p>
+        <p class="text-gray-400 text-sm">条件を広げてみてください</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ==================================================
+// SOURCE_COLORS: サイト別バッジ色の一元管理
+// HOME'S   = オレンジ (bg-orange-500)
+// SUUMO    = グリーン (bg-green-500)
+// ふれんず = ブルー   (bg-blue-500)
+// アットホーム = レッド (bg-red-500)
+// ==================================================
+const SOURCE_COLORS = {
+  "HOME'S":     'bg-orange-500',  // オレンジ
+  'SUUMO':      'bg-green-500',   // グリーン
+  'ふれんず':    'bg-blue-500',    // ブルー
+  'アットホーム': 'bg-red-500',    // レッド
+};
+
+// ==================================================
+// Favorites (LocalStorage) — オブジェクト形式で物件データ永続化
+// キー: reAggFavData (旧: reAggFavs はID配列のみだった)
+// 形式: { [id]: { ...propertyData, savedAt: timestamp } }
+// ==================================================
+const FAV_STORAGE_KEY = 'reAggFavData';
+const FAV_LEGACY_KEY = 'reAggFavs';
+
+function getFavStore() {
+  try {
+    // 旧形式マイグレーション: reAggFavs (ID配列) が残っていれば空オブジェクトに変換
+    const legacy = localStorage.getItem(FAV_LEGACY_KEY);
+    if (legacy !== null) {
+      localStorage.removeItem(FAV_LEGACY_KEY);
+      // 旧データはIDのみで物件情報がないため空オブジェクトで初期化
+      localStorage.setItem(FAV_STORAGE_KEY, '{}');
+    }
+    return JSON.parse(localStorage.getItem(FAV_STORAGE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveFavStore(store) {
+  localStorage.setItem(FAV_STORAGE_KEY, JSON.stringify(store));
+  updateFavCount();
+}
+
+function getFavoriteIds() {
+  return Object.keys(getFavStore());
+}
+
+function isFavorite(id) {
+  return id in getFavStore();
+}
+
+function toggleFav(id) {
+  const store = getFavStore();
+  if (store[id]) {
+    delete store[id];
+  } else {
+    // allPropertiesから探す。なければdisplayedPropertiesからも探す
+    const prop = allProperties.find(p => p.id === id) || displayedProperties.find(p => p.id === id);
+    if (prop) {
+      store[id] = { ...prop, savedAt: Date.now() };
+    }
+  }
+  saveFavStore(store);
+  // welcome画面のお気に入りも更新
+  if (!hasSearched) {
+    renderWelcomeFavorites();
+  }
+  applyFiltersAndSort();
+}
+
+function updateFavCount() {
+  document.getElementById('favCount').textContent = getFavoriteIds().length;
+}
+
+// 検索結果に含まれるお気に入り物件を最新データで上書き
+function syncFavoritesWithSearchResults() {
+  const store = getFavStore();
+  let changed = false;
+  allProperties.forEach(p => {
+    if (store[p.id]) {
+      store[p.id] = { ...p, savedAt: store[p.id].savedAt || Date.now() };
+      changed = true;
+    }
+  });
+  if (changed) saveFavStore(store);
+}
+
+let favFilterActive = false;
+function toggleFavFilter() {
+  const cb = document.getElementById('favOnly');
+  cb.checked = !cb.checked;
+  applyFiltersAndSort();
+}
+
+// ---- API Configuration ----
+const API_BASE = window.location.origin;  // ローカルでもRenderでも動く
+
+// ---- Property Type Mapping ----
+const PROPERTY_TYPE_MAP = {
+  '区分マンション': ['区分マンション', '投資用マンション'],
+  '一棟アパート': ['一棟アパート', '一棟売りアパート'],
+  '一棟マンション': ['一棟マンション', '一棟売りマンション'],
+  '戸建': ['戸建', '戸建賃貸'],
+};
+
+// ---- State ----
+let allProperties = [];
+let displayedProperties = [];
+let hasSearched = false;
+
+// ---- Search (real API call) ----
+async function handleSearch() {
+  document.getElementById('welcomeState').classList.add('hidden');
+  document.getElementById('resultsState').classList.add('hidden');
+  document.getElementById('loadingState').classList.remove('hidden');
+
+  const loadingText = document.getElementById('loadingText');
+  loadingText.textContent = "HOME'S・SUUMO・ふれんずから物件を取得中...";
+
+  // Build search query from sidebar filters
+  const area = document.getElementById('filterArea').value;
+  const priceMinVal = parseFloat(document.getElementById('priceMin').value);
+  const priceMaxVal = parseFloat(document.getElementById('priceMax').value);
+  const yieldMinVal = parseFloat(document.getElementById('yieldMin').value);
+  const layouts = getCheckedValues('layoutChecks');
+  const ageMaxVal = document.getElementById('filterAge').value ? parseInt(document.getElementById('filterAge').value) : null;
+  const types = getCheckedValues('typeChecks');
+
+  const query = { prefecture: '福岡県' };
+  if (area) query.city = '福岡市' + area;
+  if (!isNaN(priceMinVal)) query.priceMin = priceMinVal * 10000;  // 万円 -> 円
+  if (!isNaN(priceMaxVal)) query.priceMax = priceMaxVal * 10000;
+  if (!isNaN(yieldMinVal)) query.yieldMin = yieldMinVal;
+  if (layouts.length > 0) query.layout = layouts;
+  if (ageMaxVal !== null) query.ageMax = ageMaxVal;
+  if (types.length > 0) query.propertyType = types;
+
+  try {
+    const res = await fetch(API_BASE + '/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(query),
+    });
+
+    if (!res.ok) throw new Error('API error: ' + res.status);
+
+    const data = await res.json();
+    allProperties = data.properties || [];
+    hasSearched = true;
+
+    // 検索結果でお気に入りデータを最新化
+    syncFavoritesWithSearchResults();
+
+    // Show errors from meta if any
+    if (data.meta && data.meta.errors && data.meta.errors.length > 0) {
+      const errNames = data.meta.errors.map(e => e.siteName + ': ' + e.message).join(', ');
+      loadingText.textContent = '一部取得失敗: ' + errNames;
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('resultsState').classList.remove('hidden');
+    updateToolbar();
+    applyFiltersAndSort();
+
+  } catch (err) {
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('resultsState').classList.remove('hidden');
+    allProperties = [];
+    hasSearched = true;
+    alert('サーバーに接続できません: ' + err.message);
+    updateToolbar();
+    applyFiltersAndSort();
+  }
+}
+
+// ---- Toolbar (旧summaryPanel統合) ----
+function updateToolbar() {
+  const total = allProperties.length;
+
+  // サイト別件数
+  const siteCounts = {};
+  allProperties.forEach(p => {
+    siteCounts[p.sourceName] = (siteCounts[p.sourceName] || 0) + 1;
+  });
+  const siteOrder = ["HOME'S", 'SUUMO', 'ふれんず', 'アットホーム'];
+  const siteText = siteOrder
+    .filter(s => siteCounts[s])
+    .map(s => s + ' ' + siteCounts[s])
+    .join(' / ');
+
+  const breakdownEl = document.getElementById('siteBreakdown');
+  if (siteText) {
+    breakdownEl.textContent = '（' + siteText + '）';
+  } else {
+    breakdownEl.textContent = '';
+  }
+}
+
+function formatManEn(yen) {
+  const man = yen / 10000;
+  if (man >= 10000) return (man / 10000).toFixed(1) + '億円';
+  return Math.round(man).toLocaleString() + '万円';
+}
+
+// ---- Filters & Sort ----
+function getCheckedValues(containerId) {
+  const checks = document.querySelectorAll('#' + containerId + ' input[type=checkbox]:checked');
+  return Array.from(checks).map(c => c.value);
+}
+
+function applyFiltersAndSort() {
+  if (!hasSearched) return;
+
+  const area = document.getElementById('filterArea').value;
+  const priceMin = parseFloat(document.getElementById('priceMin').value) || 0;
+  const priceMax = parseFloat(document.getElementById('priceMax').value) || Infinity;
+  const yieldMin = parseFloat(document.getElementById('yieldMin').value) || 0;
+  const layouts = getCheckedValues('layoutChecks');
+  const areaSqmMin = parseFloat(document.getElementById('filterAreaSqm').value) || 0;
+  const walkMax = document.getElementById('filterWalk').value ? parseInt(document.getElementById('filterWalk').value) : Infinity;
+  const ageMax = document.getElementById('filterAge').value ? parseInt(document.getElementById('filterAge').value) : Infinity;
+  const types = getCheckedValues('typeChecks');
+  const structures = getCheckedValues('structureChecks');
+  const favOnly = document.getElementById('favOnly').checked;
+  const excludeNoYield = document.getElementById('excludeNoYield').checked;
+
+  // お気に入りのみ表示: LocalStorageから直接読み出し
+  let sourceList;
+  if (favOnly) {
+    const store = getFavStore();
+    const favProps = Object.values(store);
+    // 検索結果にある物件は最新データを使う
+    const searchMap = {};
+    allProperties.forEach(p => { searchMap[p.id] = p; });
+    sourceList = favProps.map(fp => searchMap[fp.id] || fp);
+  } else {
+    sourceList = allProperties;
+  }
+
+  let filtered = sourceList.filter(p => {
+    if (area && !(p.city || '').includes(area)) return false;
+    const priceManen = p.price / 10000;
+    if (priceManen < priceMin) return false;
+    if (priceManen > priceMax) return false;
+    if (p.yieldGross !== null && p.yieldGross < yieldMin) return false;
+    if (p.yieldGross === null && yieldMin > 0) return false;
+    if (excludeNoYield && (p.yieldGross === null || p.yieldGross === 0)) return false;
+    // 間取りフィルタ (1R=ワンルーム対応、4LDK以上対応)
+    if (layouts.length > 0) {
+      const pLayout = (p.layout || '').trim();
+      let matched = false;
+      for (const l of layouts) {
+        if (l === '1R' && (pLayout === '1R' || pLayout === 'ワンルーム' || pLayout.includes('ワンルーム'))) { matched = true; break; }
+        if (l === '4LDK以上' && pLayout.match(/^[4-9]LDK|^[1-9]\dLDK/)) { matched = true; break; }
+        if (l === '一棟' && ((p.propertyType || '').includes('一棟') || pLayout === '一棟')) { matched = true; break; }
+        if (pLayout === l || pLayout.startsWith(l)) { matched = true; break; }
+      }
+      if (!matched) return false;
+    }
+    // 面積フィルタ
+    if (areaSqmMin > 0 && (p.area || 0) < areaSqmMin) return false;
+    // 駅徒歩フィルタ
+    if (walkMax < Infinity) {
+      const walkMatch = (p.nearestStation || '').match(/徒歩(\d+)分/);
+      const walkMin = walkMatch ? parseInt(walkMatch[1]) : 999;
+      if (walkMin > walkMax) return false;
+    }
+    if ((p.age || 0) > ageMax) return false;
+    // 構造フィルタ
+    if (structures.length > 0) {
+      const pStruct = (p.structure || '');
+      if (!structures.some(s => pStruct.includes(s))) return false;
+    }
+    if (types.length > 0) {
+      const expandedTypes = types.flatMap(t => PROPERTY_TYPE_MAP[t] || [t]);
+      const knownValues = Object.values(PROPERTY_TYPE_MAP).flat();
+      const matchesExpanded = expandedTypes.includes(p.propertyType);
+      const isUnknownType = !knownValues.includes(p.propertyType);
+      if (!matchesExpanded && !isUnknownType) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  const sort = document.getElementById('sortSelect').value;
+  filtered.sort((a, b) => {
+    switch(sort) {
+      case 'priceAsc': return a.price - b.price;
+      case 'priceDesc': return b.price - a.price;
+      case 'yieldAsc': return (a.yieldGross||0) - (b.yieldGross||0);
+      case 'yieldDesc': return (b.yieldGross||0) - (a.yieldGross||0);
+      case 'ageAsc': return (a.age||0) - (b.age||0);
+      case 'ageDesc': return (b.age||0) - (a.age||0);
+      case 'dateDesc': return new Date(b.scrapedAt) - new Date(a.scrapedAt);
+      case 'dateAsc': return new Date(a.scrapedAt) - new Date(b.scrapedAt);
+    }
+    return 0;
+  });
+
+  displayedProperties = filtered;
+  renderCards();
+}
+
+// ---- Render Helpers ----
+function extractWalkMinutes(station) {
+  if (!station) return null;
+  const m = station.match(/徒歩(\d+)分/);
+  return m ? parseInt(m[1]) : null;
+}
+
+function buildCardHTML(p, options) {
+  const isFav = isFavorite(p.id);
+  const isDup = p.duplicateFlag;
+  const hasYield = p.yieldGross !== null && p.yieldGross > 0;
+  const sourceColor = SOURCE_COLORS[p.sourceName] || 'bg-gray-500';
+  const walkMin = extractWalkMinutes(p.nearestStation);
+
+  // ボーダー色: 重複 > 利回りなし > 通常
+  let borderClass = '';
+  if (isDup) borderClass = 'duplicate-border';
+  else if (!hasYield) borderClass = 'no-yield-border';
+
+  return `
+  <a href="${p.sourceUrl}" target="_blank" rel="noopener" class="block bg-white rounded-lg border border-gray-200 overflow-hidden card-hover transition-card relative ${borderClass}">
+    ${isDup ? '<span class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded z-10">重複候補</span>' : ''}
+    <button onclick="event.preventDefault();event.stopPropagation();toggleFav('${p.id}')" class="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full ${isFav ? 'bg-yellow-100' : 'bg-white/80 hover:bg-gray-100'} transition-colors" title="お気に入り">
+      <svg class="w-5 h-5 ${isFav ? 'text-yellow-500' : 'text-gray-400'}" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    </button>
+    <div class="p-3">
+      <!-- 第1層: ソース + 物件名 / 価格 + 利回り / エリア -->
+      <div class="flex items-start gap-2 mb-1">
+        <span class="${sourceColor} text-white text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0">${p.sourceName}</span>
+        <h3 class="text-sm font-semibold text-gray-800 truncate">${p.name}</h3>
+      </div>
+      <div class="flex items-baseline gap-3 mb-0.5">
+        <p class="text-xl font-bold text-gray-900" style="font-size:20px">${p.priceText}</p>
+        <p class="text-base font-bold ${hasYield && p.yieldGross >= 8 ? 'text-red-600' : hasYield ? 'text-orange-500' : 'text-gray-400'}" style="font-size:16px">
+          ${hasYield ? p.yieldGross.toFixed(1) + '%' : '利回りなし'}
+        </p>
+      </div>
+      <p class="text-xs text-gray-500 mb-2">${(p.address || '').replace('福岡県','')}</p>
+      <!-- 第2層: 間取り + 面積 + 駅徒歩 -->
+      <p class="text-xs text-gray-600 mb-1">${p.layout || '-'} / ${p.area ? p.area + 'm\u00B2' : '-'} / ${walkMin !== null ? '駅徒歩' + walkMin + '分' : p.nearestStation || '-'}</p>
+      <!-- 第3層: 築年数・構造・物件種別 -->
+      <p class="text-[11px] text-gray-400">築${p.age != null ? p.age + '年' : '-'} / ${p.structure || '-'} / ${p.propertyType || '-'}</p>
+    </div>
+  </a>`;
+}
+
+// ---- Render Cards (検索結果) ----
+function renderCards() {
+  const grid = document.getElementById('cardGrid');
+  const empty = document.getElementById('emptyState');
+  const countEl = document.getElementById('resultCount');
+
+  countEl.textContent = displayedProperties.length;
+
+  if (displayedProperties.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  grid.innerHTML = displayedProperties.map(p => buildCardHTML(p)).join('');
+}
+
+// ---- Welcome画面: お気に入り表示 (E5) ----
+function renderWelcomeFavorites() {
+  const store = getFavStore();
+  const favProps = Object.values(store);
+  const favSection = document.getElementById('welcomeFavSection');
+  const emptySection = document.getElementById('welcomeEmpty');
+  const favGrid = document.getElementById('welcomeFavGrid');
+  const favCountEl = document.getElementById('welcomeFavCount');
+
+  if (favProps.length > 0) {
+    favSection.classList.remove('hidden');
+    emptySection.classList.add('hidden');
+    favCountEl.textContent = favProps.length;
+    // savedAt降順でソート
+    favProps.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    favGrid.innerHTML = favProps.map(p => buildCardHTML(p)).join('');
+  } else {
+    favSection.classList.add('hidden');
+    emptySection.classList.remove('hidden');
+    favGrid.innerHTML = '';
+  }
+}
+
+// ---- Event Listeners for live filter updates ----
+['filterArea', 'priceMin', 'priceMax', 'yieldMin', 'filterAreaSqm', 'filterWalk', 'filterAge', 'favOnly', 'excludeNoYield'].forEach(id => {
+  document.getElementById(id).addEventListener('change', applyFiltersAndSort);
+  document.getElementById(id).addEventListener('input', applyFiltersAndSort);
+});
+document.querySelectorAll('#layoutChecks input, #typeChecks input, #structureChecks input').forEach(cb => {
+  cb.addEventListener('change', applyFiltersAndSort);
+});
+
+// Init
+updateFavCount();
+renderWelcomeFavorites();
+</script>
+</body>
+</html>
