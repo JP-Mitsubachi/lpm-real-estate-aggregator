@@ -4,7 +4,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# 投資物件の最低価格ガード（賃貸・極端な安値を除外）
+# 月額5万円の賃貸物件（price=50,000）を確実に弾くための閾値
+MIN_INVESTMENT_PRICE_YEN = 1_000_000  # 100万円
 
 
 class SearchQuery(BaseModel):
@@ -20,7 +24,12 @@ class SearchQuery(BaseModel):
 
 
 class Property(BaseModel):
-    """Unified property schema (Tech Spec Data Model)."""
+    """Unified property schema (Tech Spec Data Model).
+
+    価格ガード: MIN_INVESTMENT_PRICE_YEN (100万円) 未満の物件は
+    ValidationError を発生させる。スクレイパー側は try/except で握りつぶし
+    スキップする想定。これにより月5万円等の賃貸物件が確実に除外される。
+    """
     id: str
     name: str
     price: Optional[int] = None
@@ -43,6 +52,17 @@ class Property(BaseModel):
     scrapedAt: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
     duplicateFlag: bool = False
     duplicateCandidates: list[str] = Field(default_factory=list)
+
+    @field_validator("price")
+    @classmethod
+    def validate_investment_price(cls, v: Optional[int]) -> Optional[int]:
+        """100万円未満（賃貸・極端な安値）を拒否。priceがNoneは許容（利回り不明物件用）。"""
+        if v is not None and v < MIN_INVESTMENT_PRICE_YEN:
+            raise ValueError(
+                "price {} yen is below investment threshold ({} yen). "
+                "Likely a rental listing.".format(v, MIN_INVESTMENT_PRICE_YEN)
+            )
+        return v
 
 
 class ScraperError(BaseModel):

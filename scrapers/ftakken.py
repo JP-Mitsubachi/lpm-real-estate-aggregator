@@ -178,9 +178,13 @@ class FtakkenScraper(BaseScraper):
 
         properties = []
         for item in result.get("items", []):
-            prop = self._parse_item(item, listtype)
-            if prop:
-                properties.append(prop)
+            try:
+                prop = self._parse_item(item, listtype)
+                if prop:
+                    properties.append(prop)
+            except Exception as exc:
+                # Validation error (e.g. price < 100万円 = rental) → skip silently
+                logger.debug("f-takken: skipped item: %s", exc)
         return properties
 
     def _parse_item(self, item: dict, listtype: str) -> Optional[Property]:

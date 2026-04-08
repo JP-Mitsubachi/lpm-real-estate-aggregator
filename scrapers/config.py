@@ -61,12 +61,18 @@ FTAKKEN_SELECTORS = {
 
 # ---------- Scraper Registry ----------
 # Maps site name -> { module, class_name, selectors }
-# SUUMO は投資用カテゴリがなく利回りデータも取得できないため除外。投資物件専用の HOME'S + 福岡地場のふれんず の2サイト構成。
+# 賃貸物件は models.Property の価格ガード（100万円未満拒否）で全サイト一律除外。
+# SUUMO は中古マンション売買URL（/ms/chuko/）のみを叩くため賃貸混入なし。
 SCRAPER_REGISTRY = {
     "HOME'S": {
         "module": "scrapers.homes",
         "class_name": "HomesScraper",
         "selectors": HOMES_SELECTORS,
+    },
+    "SUUMO": {
+        "module": "scrapers.suumo",
+        "class_name": "SuumoScraper",
+        "selectors": SUUMO_SELECTORS,
     },
     "ふれんず": {
         "module": "scrapers.ftakken",
