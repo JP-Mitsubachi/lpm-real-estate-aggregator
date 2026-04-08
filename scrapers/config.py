@@ -61,16 +61,12 @@ FTAKKEN_SELECTORS = {
 
 # ---------- Scraper Registry ----------
 # Maps site name -> { module, class_name, selectors }
+# SUUMO は投資用カテゴリがなく利回りデータも取得できないため除外。投資物件専用の HOME'S + 福岡地場のふれんず の2サイト構成。
 SCRAPER_REGISTRY = {
     "HOME'S": {
         "module": "scrapers.homes",
         "class_name": "HomesScraper",
         "selectors": HOMES_SELECTORS,
-    },
-    "SUUMO": {
-        "module": "scrapers.suumo",
-        "class_name": "SuumoScraper",
-        "selectors": SUUMO_SELECTORS,
     },
     "ふれんず": {
         "module": "scrapers.ftakken",
@@ -80,7 +76,7 @@ SCRAPER_REGISTRY = {
 }
 
 # ---------- Global Settings ----------
-MAX_PAGES = 3  # Render Free: メモリ節約。Starter($7/月)なら10に引き上げ可
+MAX_PAGES = 5  # 2サイト構成（HOME'S + ふれんず）。Render Freeでも安定
 REQUEST_INTERVAL_SEC = 1.0
 PAGE_TIMEOUT_MS = 30000  # 30秒（Render Freeのレスポンス時間制約対策）
 USER_AGENT = (
