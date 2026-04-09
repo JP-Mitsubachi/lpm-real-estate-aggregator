@@ -82,7 +82,7 @@ SCRAPER_REGISTRY = {
 }
 
 # ---------- Global Settings ----------
-MAX_PAGES = 5  # 3サイト構成（HOME'S + SUUMO + ふれんず）。本番実測でタイムアウトするなら3に下げる
+MAX_PAGES = 2  # Render Free tier: load待ち40秒+複数ページ=全体時間短縮のため2に制限
 REQUEST_INTERVAL_SEC = 1.0
 PAGE_TIMEOUT_MS = 30000  # 30秒（Render Freeのレスポンス時間制約対策）
 USER_AGENT = (

@@ -52,7 +52,7 @@ class HomesScraper(BaseScraper):
                 logger.info("HOME'S: navigating to %s", url)
                 # 'commit' returns as soon as headers arrive — avoids waiting on
                 # slow subresources / tracking beacons that hang on Render.
-                resp = await page.goto(url, wait_until="commit", timeout=45000)
+                resp = await page.goto(url, wait_until="load", timeout=45000)
                 try:
                     await page.wait_for_selector(SEL["item"], timeout=15000)
                 except Exception:
