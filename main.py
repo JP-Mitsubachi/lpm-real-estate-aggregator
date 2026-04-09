@@ -53,3 +53,63 @@ async def api_search(query: SearchQuery) -> SearchResponse:
 async def health():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+@app.get("/api/debug/{site}")
+async def debug_site(site: str):
+    """Diagnostic: load one page from a site and return HTML snippet + metadata.
+
+    Usage: GET /api/debug/homes  or  /api/debug/suumo
+    Returns status, title, final_url, and first 2000 chars of body.
+    """
+    import time
+    from playwright.async_api import async_playwright
+    from scrapers.config import USER_AGENT
+
+    url_map = {
+        "homes": "https://toushi.homes.co.jp/bukkensearch/addr11=40/",
+        "suumo": "https://suumo.jp/ms/chuko/fukuoka/sc_fukuokashihakata/",
+        "ftakken": "https://www.f-takken.com/freins/buy/mansion",
+    }
+    target_url = url_map.get(site)
+    if not target_url:
+        return {"error": "unknown site. use: homes, suumo, ftakken"}
+
+    start = time.time()
+    result = {}
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent=USER_AGENT,
+            viewport={"width": 1280, "height": 800},
+            extra_http_headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8",
+            },
+        )
+        page = await context.new_page()
+        try:
+            resp = await page.goto(target_url, wait_until="load", timeout=45000)
+            result["status"] = resp.status if resp else None
+            result["final_url"] = page.url
+            result["title"] = await page.title()
+            body = await page.content()
+            result["body_length"] = len(body)
+            result["body_head"] = body[:2000]
+            # Check specific selectors
+            selectors = {
+                "homes": ".propertyList__item",
+                "suumo": ".property_unit",
+                "ftakken": "#app",
+            }
+            sel = selectors.get(site, "body")
+            els = await page.query_selector_all(sel)
+            result["selector"] = sel
+            result["selector_count"] = len(els)
+        except Exception as exc:
+            result["error"] = str(exc)
+        finally:
+            await browser.close()
+
+    result["elapsed"] = "{:.1f}s".format(time.time() - start)
+    return result

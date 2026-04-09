@@ -97,9 +97,9 @@ class SuumoScraper(BaseScraper):
         properties: list[Property] = []
         logger.info("SUUMO: navigating to %s", url)
         # Use 'load' to allow post-HTML scripts to render the property list.
-        resp = await page.goto(url, wait_until="load", timeout=60000)
+        resp = await page.goto(url, wait_until="load", timeout=45000)
         try:
-            await page.wait_for_selector(SEL["item"], timeout=30000)
+            await page.wait_for_selector(SEL["item"], timeout=15000)
         except Exception:
             diag = await capture_diagnostics(page, resp, SEL["item"])
             raise RuntimeError("SUUMO first selector not found at " + url + ". " + diag)
