@@ -37,6 +37,12 @@ class SuumoScraper(BaseScraper):
             context = await browser.new_context(
                 user_agent=USER_AGENT,
                 viewport={"width": 1280, "height": 800},
+                extra_http_headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Upgrade-Insecure-Requests": "1",
+                },
             )
             page = await context.new_page()
             page.set_default_timeout(PAGE_TIMEOUT_MS)
@@ -90,9 +96,10 @@ class SuumoScraper(BaseScraper):
         """Scrape one SUUMO listing URL with pagination."""
         properties: list[Property] = []
         logger.info("SUUMO: navigating to %s", url)
-        resp = await page.goto(url, wait_until="domcontentloaded")
+        # Use 'load' to allow post-HTML scripts to render the property list.
+        resp = await page.goto(url, wait_until="load", timeout=60000)
         try:
-            await page.wait_for_selector(SEL["item"], timeout=10000)
+            await page.wait_for_selector(SEL["item"], timeout=30000)
         except Exception:
             diag = await capture_diagnostics(page, resp, SEL["item"])
             raise RuntimeError("SUUMO first selector not found at " + url + ". " + diag)

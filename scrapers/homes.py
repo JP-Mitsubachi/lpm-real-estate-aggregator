@@ -37,6 +37,12 @@ class HomesScraper(BaseScraper):
             context = await browser.new_context(
                 user_agent=USER_AGENT,
                 viewport={"width": 1280, "height": 800},
+                extra_http_headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Upgrade-Insecure-Requests": "1",
+                },
             )
             page = await context.new_page()
             page.set_default_timeout(PAGE_TIMEOUT_MS)
@@ -44,9 +50,11 @@ class HomesScraper(BaseScraper):
             try:
                 url = self._build_url(query)
                 logger.info("HOME'S: navigating to %s", url)
-                resp = await page.goto(url, wait_until="domcontentloaded")
+                # 'commit' returns as soon as headers arrive — avoids waiting on
+                # slow subresources / tracking beacons that hang on Render.
+                resp = await page.goto(url, wait_until="commit", timeout=60000)
                 try:
-                    await page.wait_for_selector(SEL["item"], timeout=15000)
+                    await page.wait_for_selector(SEL["item"], timeout=20000)
                 except Exception:
                     diag = await capture_diagnostics(page, resp, SEL["item"])
                     raise RuntimeError("HOME'S first page selector not found. " + diag)

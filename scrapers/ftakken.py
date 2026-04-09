@@ -62,6 +62,12 @@ class FtakkenScraper(BaseScraper):
             context = await browser.new_context(
                 user_agent=USER_AGENT,
                 viewport={"width": 1280, "height": 800},
+                extra_http_headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Upgrade-Insecure-Requests": "1",
+                },
             )
             page = await context.new_page()
             page.set_default_timeout(PAGE_TIMEOUT_MS)
