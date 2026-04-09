@@ -68,3 +68,32 @@ class BaseScraper(abc.ABC):
         """Extract prefecture from address."""
         m = re.match(r"(.+?[都道府県])", address)
         return m.group(1) if m else ""
+
+
+async def capture_diagnostics(page, resp, selector: str) -> str:
+    """Capture page state for debugging bot detection / selector changes.
+
+    Returns a one-line diagnostic string containing HTTP status, page title,
+    final URL, and a body snippet — used to diagnose 0-item failures on
+    hosted environments (bot walls, captchas, selector changes, etc.).
+    """
+    try:
+        status = resp.status if resp else "NO_RESPONSE"
+    except Exception:
+        status = "ERR"
+    try:
+        final_url = page.url
+    except Exception:
+        final_url = "ERR"
+    try:
+        title = (await page.title())[:120]
+    except Exception:
+        title = "ERR"
+    try:
+        body = await page.content()
+        snippet = body[:400].replace("\n", " ").replace("\r", " ")
+    except Exception:
+        snippet = "ERR"
+    return "selector='{}' status={} title='{}' final_url={} body_head={}".format(
+        selector, status, title, final_url, snippet[:300]
+    )

@@ -11,7 +11,7 @@ from typing import Optional
 from playwright.async_api import async_playwright, Page
 
 from models import Property, SearchQuery
-from scrapers.base import BaseScraper
+from scrapers.base import BaseScraper, capture_diagnostics
 from scrapers.config import (
     SUUMO_SELECTORS as SEL,
     MAX_PAGES,
@@ -31,6 +31,7 @@ class SuumoScraper(BaseScraper):
     async def search(self, query: SearchQuery) -> list[Property]:
         """Scrape SUUMO and return Property list."""
         properties: list[Property] = []
+        first_url_error: Optional[Exception] = None
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True)
             context = await browser.new_context(
@@ -42,14 +43,22 @@ class SuumoScraper(BaseScraper):
 
             try:
                 urls = self._build_urls(query)
-                for url in urls:
-                    url_props = await self._scrape_url(page, url)
-                    properties.extend(url_props)
+                for idx, url in enumerate(urls):
+                    try:
+                        url_props = await self._scrape_url(page, url)
+                        properties.extend(url_props)
+                    except Exception as exc:
+                        logger.error("SUUMO %s failed: %s", url, exc)
+                        if idx == 0:
+                            # First URL failure - propagate so orchestrator sees it
+                            first_url_error = exc
                     await asyncio.sleep(REQUEST_INTERVAL_SEC)
-            except Exception as exc:
-                logger.error("SUUMO scraping error: %s", exc)
             finally:
                 await browser.close()
+
+        # If we got nothing at all and the first URL failed, propagate the error
+        if not properties and first_url_error is not None:
+            raise first_url_error
 
         return properties
 
@@ -80,13 +89,13 @@ class SuumoScraper(BaseScraper):
     async def _scrape_url(self, page: Page, url: str) -> list[Property]:
         """Scrape one SUUMO listing URL with pagination."""
         properties: list[Property] = []
+        logger.info("SUUMO: navigating to %s", url)
+        resp = await page.goto(url, wait_until="domcontentloaded")
         try:
-            logger.info("SUUMO: navigating to %s", url)
-            await page.goto(url, wait_until="domcontentloaded")
             await page.wait_for_selector(SEL["item"], timeout=10000)
         except Exception:
-            logger.warning("SUUMO: no results at %s", url)
-            return properties
+            diag = await capture_diagnostics(page, resp, SEL["item"])
+            raise RuntimeError("SUUMO first selector not found at " + url + ". " + diag)
 
         for page_num in range(1, MAX_PAGES + 1):
             page_props = await self._parse_page(page)

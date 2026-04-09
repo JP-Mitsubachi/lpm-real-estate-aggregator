@@ -11,7 +11,7 @@ from typing import Optional
 from playwright.async_api import async_playwright, Page
 
 from models import Property, SearchQuery
-from scrapers.base import BaseScraper
+from scrapers.base import BaseScraper, capture_diagnostics
 from scrapers.config import (
     HOMES_SELECTORS as SEL,
     MAX_PAGES,
@@ -44,8 +44,12 @@ class HomesScraper(BaseScraper):
             try:
                 url = self._build_url(query)
                 logger.info("HOME'S: navigating to %s", url)
-                await page.goto(url, wait_until="domcontentloaded")
-                await page.wait_for_selector(SEL["item"], timeout=15000)
+                resp = await page.goto(url, wait_until="domcontentloaded")
+                try:
+                    await page.wait_for_selector(SEL["item"], timeout=15000)
+                except Exception:
+                    diag = await capture_diagnostics(page, resp, SEL["item"])
+                    raise RuntimeError("HOME'S first page selector not found. " + diag)
 
                 for page_num in range(1, MAX_PAGES + 1):
                     page_props = await self._parse_page(page)
@@ -69,12 +73,12 @@ class HomesScraper(BaseScraper):
                         logger.info("HOME'S: no more pages after %d", page_num)
                         break
 
-            except Exception as exc:
-                logger.error("HOME'S scraping error: %s", exc)
             finally:
                 await browser.close()
 
         return properties
+
+
 
     # ---------- internal ----------
     def _build_url(self, query: SearchQuery) -> str:
