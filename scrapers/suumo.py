@@ -104,14 +104,20 @@ class SuumoScraper(BaseScraper):
             await page.wait_for_load_state("networkidle", timeout=15000)
         except Exception:
             logger.warning("SUUMO: networkidle timeout, proceeding anyway")
-        # SUUMO loads .property_unit elements hidden then reveals via JS.
-        # wait_for_selector defaults to state='visible' and times out.
-        # Use state='attached' to only require DOM presence.
-        try:
-            await page.wait_for_selector(SEL["item"], state="attached", timeout=20000)
-        except Exception:
+        # SUUMO: elements exist in DOM (qsa_count=20 confirmed) but
+        # wait_for_selector misses them — likely a race where JS replaces DOM.
+        # Skip wait_for_selector; poll query_selector_all with retries instead.
+        items_found = False
+        for _attempt in range(6):  # up to 30s total (6 × 5s)
+            els = await page.query_selector_all(SEL["item"])
+            if els:
+                items_found = True
+                logger.info("SUUMO: found %d items after %d attempts", len(els), _attempt + 1)
+                break
+            await asyncio.sleep(5)
+        if not items_found:
             diag = await capture_diagnostics(page, resp, SEL["item"])
-            raise RuntimeError("SUUMO first selector not found at " + url + ". " + diag)
+            raise RuntimeError("SUUMO no items after retries at " + url + ". " + diag)
 
         for page_num in range(1, MAX_PAGES + 1):
             page_props = await self._parse_page(page)
