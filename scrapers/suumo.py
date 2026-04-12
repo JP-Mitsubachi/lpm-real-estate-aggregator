@@ -95,29 +95,35 @@ class SuumoScraper(BaseScraper):
     async def _scrape_url(self, page: Page, url: str) -> list[Property]:
         """Scrape one SUUMO listing URL with pagination."""
         properties: list[Property] = []
-        logger.info("SUUMO: navigating to %s", url)
-        # Use 'load' to allow post-HTML scripts to render the property list.
-        resp = await page.goto(url, wait_until="load", timeout=45000)
-        # On Render Free, JS rendering can be slow after HOME'S consumed CPU.
-        # Wait for network to settle before checking for the selector.
-        try:
-            await page.wait_for_load_state("networkidle", timeout=15000)
-        except Exception:
-            logger.warning("SUUMO: networkidle timeout, proceeding anyway")
-        # SUUMO: elements exist in DOM (qsa_count=20 confirmed) but
-        # wait_for_selector misses them — likely a race where JS replaces DOM.
-        # Skip wait_for_selector; poll query_selector_all with retries instead.
+
+        # SUUMO intermittently returns 503 from datacenter IPs.
+        # Retry up to 2 times with backoff.
+        resp = None
+        for nav_attempt in range(3):
+            logger.info("SUUMO: navigating to %s (attempt %d)", url, nav_attempt + 1)
+            resp = await page.goto(url, wait_until="load", timeout=45000)
+            if resp and resp.status == 503:
+                logger.warning("SUUMO: got 503, retrying in %ds", 10 * (nav_attempt + 1))
+                await asyncio.sleep(10 * (nav_attempt + 1))
+                continue
+            break
+
+        if resp and resp.status == 503:
+            diag = await capture_diagnostics(page, resp, SEL["item"])
+            raise RuntimeError("SUUMO 503 after 3 retries at " + url + ". " + diag)
+
+        # Poll for elements (SUUMO loads items into DOM then reveals via JS)
         items_found = False
-        for _attempt in range(6):  # up to 30s total (6 × 5s)
+        for _attempt in range(4):  # up to 15s (4 × ~4s)
             els = await page.query_selector_all(SEL["item"])
             if els:
                 items_found = True
-                logger.info("SUUMO: found %d items after %d attempts", len(els), _attempt + 1)
+                logger.info("SUUMO: found %d items (poll attempt %d)", len(els), _attempt + 1)
                 break
-            await asyncio.sleep(5)
+            await asyncio.sleep(4)
         if not items_found:
             diag = await capture_diagnostics(page, resp, SEL["item"])
-            raise RuntimeError("SUUMO no items after retries at " + url + ". " + diag)
+            raise RuntimeError("SUUMO no items after polling at " + url + ". " + diag)
 
         for page_num in range(1, MAX_PAGES + 1):
             page_props = await self._parse_page(page)
