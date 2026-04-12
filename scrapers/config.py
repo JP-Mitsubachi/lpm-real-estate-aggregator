@@ -64,15 +64,16 @@ FTAKKEN_SELECTORS = {
 # 賃貸物件は models.Property の価格ガード（100万円未満拒否）で全サイト一律除外。
 # SUUMO は中古マンション売買URL（/ms/chuko/）のみを叩くため賃貸混入なし。
 SCRAPER_REGISTRY = {
-    "HOME'S": {
-        "module": "scrapers.homes",
-        "class_name": "HomesScraper",
-        "selectors": HOMES_SELECTORS,
-    },
+    # SUUMO first: its JS rendering fails if run after HOME'S (memory/CPU contention on Render Free)
     "SUUMO": {
         "module": "scrapers.suumo",
         "class_name": "SuumoScraper",
         "selectors": SUUMO_SELECTORS,
+    },
+    "HOME'S": {
+        "module": "scrapers.homes",
+        "class_name": "HomesScraper",
+        "selectors": HOMES_SELECTORS,
     },
     "ふれんず": {
         "module": "scrapers.ftakken",
