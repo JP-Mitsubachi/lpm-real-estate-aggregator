@@ -107,8 +107,17 @@ class SuumoScraper(BaseScraper):
         try:
             await page.wait_for_selector(SEL["item"], timeout=20000)
         except Exception:
+            # Deep diagnostic: check if elements exist despite wait_for_selector failure
+            import asyncio as _aio
+            await _aio.sleep(5)  # extra wait
+            els = await page.query_selector_all(SEL["item"])
+            body = await page.content()
+            has_class = "property_unit" in body
             diag = await capture_diagnostics(page, resp, SEL["item"])
-            raise RuntimeError("SUUMO first selector not found at " + url + ". " + diag)
+            extra = " qsa_count={} class_in_body={} body_len={}".format(
+                len(els), has_class, len(body)
+            )
+            raise RuntimeError("SUUMO first selector not found at " + url + ". " + diag + extra)
 
         for page_num in range(1, MAX_PAGES + 1):
             page_props = await self._parse_page(page)
