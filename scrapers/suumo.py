@@ -98,8 +98,14 @@ class SuumoScraper(BaseScraper):
         logger.info("SUUMO: navigating to %s", url)
         # Use 'load' to allow post-HTML scripts to render the property list.
         resp = await page.goto(url, wait_until="load", timeout=45000)
+        # On Render Free, JS rendering can be slow after HOME'S consumed CPU.
+        # Wait for network to settle before checking for the selector.
         try:
-            await page.wait_for_selector(SEL["item"], timeout=15000)
+            await page.wait_for_load_state("networkidle", timeout=15000)
+        except Exception:
+            logger.warning("SUUMO: networkidle timeout, proceeding anyway")
+        try:
+            await page.wait_for_selector(SEL["item"], timeout=20000)
         except Exception:
             diag = await capture_diagnostics(page, resp, SEL["item"])
             raise RuntimeError("SUUMO first selector not found at " + url + ". " + diag)
