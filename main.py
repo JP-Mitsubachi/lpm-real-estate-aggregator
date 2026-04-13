@@ -1,14 +1,16 @@
 """FastAPI app for L-008 Real Estate Aggregator."""
 from __future__ import annotations
 
+import asyncio
 import logging
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-from models import SearchQuery, SearchResponse
+from models import SearchQuery
 from services.orchestrator import run_search
 
 logging.basicConfig(
@@ -19,7 +21,7 @@ logging.basicConfig(
 app = FastAPI(
     title="L-008 Real Estate Aggregator",
     description="HOME'S + SUUMO + ふれんず property search API",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
@@ -32,6 +34,9 @@ app.add_middleware(
 
 # Resolve HTML file path
 STATIC_DIR = Path(__file__).parent / "static"
+
+# In-memory job store for async search
+_jobs: dict[str, dict] = {}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -52,10 +57,32 @@ async def serve_dev_process():
     return HTMLResponse(content="<h1>Page not found</h1>", status_code=404)
 
 
-@app.post("/api/search", response_model=SearchResponse)
-async def api_search(query: SearchQuery) -> SearchResponse:
-    """Search properties across all configured sites."""
-    return await run_search(query)
+@app.post("/api/search")
+async def api_search(query: SearchQuery):
+    """Start async search — returns jobId immediately, poll /api/result/{jobId}."""
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {"status": "running"}
+    asyncio.create_task(_run_and_store(job_id, query))
+    return {"jobId": job_id, "status": "running"}
+
+
+async def _run_and_store(job_id: str, query: SearchQuery):
+    """Background task: run search and store result."""
+    try:
+        result = await run_search(query)
+        _jobs[job_id] = {"status": "done", "result": result.model_dump()}
+    except Exception as e:
+        logging.getLogger(__name__).error("Search job %s failed: %s", job_id, e)
+        _jobs[job_id] = {"status": "error", "error": str(e)}
+
+
+@app.get("/api/result/{job_id}")
+async def get_result(job_id: str):
+    """Poll for search result by jobId."""
+    job = _jobs.get(job_id)
+    if not job:
+        return {"error": "not found"}
+    return job
 
 
 @app.get("/health")
@@ -66,11 +93,7 @@ async def health():
 
 @app.get("/api/debug/{site}")
 async def debug_site(site: str):
-    """Diagnostic: load one page from a site and return HTML snippet + metadata.
-
-    Usage: GET /api/debug/homes  or  /api/debug/suumo
-    Returns status, title, final_url, and first 2000 chars of body.
-    """
+    """Diagnostic: load one page from a site and return HTML snippet + metadata."""
     import time
     from playwright.async_api import async_playwright
     from scrapers.config import USER_AGENT
@@ -105,7 +128,6 @@ async def debug_site(site: str):
             body = await page.content()
             result["body_length"] = len(body)
             result["body_head"] = body[:2000]
-            # Check specific selectors
             selectors = {
                 "homes": ".propertyList__item",
                 "suumo": ".property_unit",

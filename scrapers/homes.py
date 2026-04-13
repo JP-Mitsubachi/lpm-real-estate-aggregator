@@ -29,59 +29,61 @@ class HomesScraper(BaseScraper):
     site_name = "HOME'S"
 
     # ---------- public API ----------
-    async def search(self, query: SearchQuery) -> list[Property]:
+    async def search(self, query: SearchQuery, browser=None) -> list[Property]:
         """Scrape HOME'S and return Property list."""
         properties: list[Property] = []
-        async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent=USER_AGENT,
-                viewport={"width": 1280, "height": 800},
-                extra_http_headers={
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                    "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    "Upgrade-Insecure-Requests": "1",
-                },
-            )
-            page = await context.new_page()
-            page.set_default_timeout(PAGE_TIMEOUT_MS)
+        # Use shared browser from orchestrator, or launch own for standalone use
+        own_pw = None
+        if browser is None:
+            own_pw = await async_playwright().start()
+            browser = await own_pw.chromium.launch(headless=True)
 
+        context = await browser.new_context(
+            user_agent=USER_AGENT,
+            viewport={"width": 1280, "height": 800},
+            extra_http_headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Upgrade-Insecure-Requests": "1",
+            },
+        )
+        page = await context.new_page()
+        page.set_default_timeout(PAGE_TIMEOUT_MS)
+
+        try:
+            url = self._build_url(query)
+            logger.info("HOME'S: navigating to %s", url)
+            resp = await page.goto(url, wait_until="load", timeout=45000)
             try:
-                url = self._build_url(query)
-                logger.info("HOME'S: navigating to %s", url)
-                # 'commit' returns as soon as headers arrive — avoids waiting on
-                # slow subresources / tracking beacons that hang on Render.
-                resp = await page.goto(url, wait_until="load", timeout=45000)
+                await page.wait_for_selector(SEL["item"], timeout=15000)
+            except Exception:
+                diag = await capture_diagnostics(page, resp, SEL["item"])
+                raise RuntimeError("HOME'S first page selector not found. " + diag)
+
+            for page_num in range(1, MAX_PAGES + 1):
+                page_props = await self._parse_page(page)
+                properties.extend(page_props)
+                logger.info(
+                    "HOME'S page %d: %d items (total %d)",
+                    page_num, len(page_props), len(properties),
+                )
+
+                if page_num >= MAX_PAGES:
+                    break
+
+                next_url = self._next_page_url(url, page_num + 1)
+                await asyncio.sleep(REQUEST_INTERVAL_SEC)
+                await page.goto(next_url, wait_until="domcontentloaded")
                 try:
-                    await page.wait_for_selector(SEL["item"], timeout=15000)
+                    await page.wait_for_selector(SEL["item"], timeout=10000)
                 except Exception:
-                    diag = await capture_diagnostics(page, resp, SEL["item"])
-                    raise RuntimeError("HOME'S first page selector not found. " + diag)
+                    logger.info("HOME'S: no more pages after %d", page_num)
+                    break
 
-                for page_num in range(1, MAX_PAGES + 1):
-                    page_props = await self._parse_page(page)
-                    properties.extend(page_props)
-                    logger.info(
-                        "HOME'S page %d: %d items (total %d)",
-                        page_num, len(page_props), len(properties),
-                    )
-
-                    if page_num >= MAX_PAGES:
-                        break
-
-                    # Navigate to next page
-                    next_url = self._next_page_url(url, page_num + 1)
-                    await asyncio.sleep(REQUEST_INTERVAL_SEC)
-                    await page.goto(next_url, wait_until="domcontentloaded")
-                    # Check if items exist on next page
-                    try:
-                        await page.wait_for_selector(SEL["item"], timeout=10000)
-                    except Exception:
-                        logger.info("HOME'S: no more pages after %d", page_num)
-                        break
-
-            finally:
+        finally:
+            await context.close()
+            if own_pw:
                 await browser.close()
 
         return properties

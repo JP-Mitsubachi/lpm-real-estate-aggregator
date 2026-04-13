@@ -28,41 +28,45 @@ class SuumoScraper(BaseScraper):
 
     site_name = "SUUMO"
 
-    async def search(self, query: SearchQuery) -> list[Property]:
+    async def search(self, query: SearchQuery, browser=None) -> list[Property]:
         """Scrape SUUMO and return Property list."""
         properties: list[Property] = []
         first_url_error: Optional[Exception] = None
-        async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent=USER_AGENT,
-                viewport={"width": 1280, "height": 800},
-                extra_http_headers={
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                    "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    "Upgrade-Insecure-Requests": "1",
-                },
-            )
-            page = await context.new_page()
-            page.set_default_timeout(PAGE_TIMEOUT_MS)
 
-            try:
-                urls = self._build_urls(query)
-                for idx, url in enumerate(urls):
-                    try:
-                        url_props = await self._scrape_url(page, url)
-                        properties.extend(url_props)
-                    except Exception as exc:
-                        logger.error("SUUMO %s failed: %s", url, exc)
-                        if idx == 0:
-                            # First URL failure - propagate so orchestrator sees it
-                            first_url_error = exc
-                    await asyncio.sleep(REQUEST_INTERVAL_SEC)
-            finally:
+        own_pw = None
+        if browser is None:
+            own_pw = await async_playwright().start()
+            browser = await own_pw.chromium.launch(headless=True)
+
+        context = await browser.new_context(
+            user_agent=USER_AGENT,
+            viewport={"width": 1280, "height": 800},
+            extra_http_headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Upgrade-Insecure-Requests": "1",
+            },
+        )
+        page = await context.new_page()
+        page.set_default_timeout(PAGE_TIMEOUT_MS)
+
+        try:
+            urls = self._build_urls(query)
+            for idx, url in enumerate(urls):
+                try:
+                    url_props = await self._scrape_url(page, url)
+                    properties.extend(url_props)
+                except Exception as exc:
+                    logger.error("SUUMO %s failed: %s", url, exc)
+                    if idx == 0:
+                        first_url_error = exc
+                await asyncio.sleep(REQUEST_INTERVAL_SEC)
+        finally:
+            await context.close()
+            if own_pw:
                 await browser.close()
 
-        # If we got nothing at all and the first URL failed, propagate the error
         if not properties and first_url_error is not None:
             raise first_url_error
 

@@ -21,7 +21,7 @@ class BaseScraper(abc.ABC):
     site_name: str = ""
 
     @abc.abstractmethod
-    async def search(self, query: "SearchQuery") -> list["Property"]:
+    async def search(self, query: "SearchQuery", browser=None) -> list["Property"]:
         """Run scraping and return a list of Property objects.
 
         Must handle its own errors gracefully and return partial results

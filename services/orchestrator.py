@@ -1,10 +1,12 @@
-"""Orchestrator: run scrapers sequentially to save memory on Render."""
+"""Orchestrator: run scrapers sequentially with shared browser to save memory."""
 from __future__ import annotations
 
 import importlib
 import logging
 import time
 from datetime import datetime
+
+from playwright.async_api import async_playwright
 
 from models import Meta, Property, ScraperError, SearchQuery, SearchResponse
 from scrapers.config import SCRAPER_REGISTRY
@@ -24,7 +26,7 @@ def _load_scrapers():
 
 
 async def run_search(query: SearchQuery) -> SearchResponse:
-    """Execute scrapers sequentially (memory-safe for Render Free tier)."""
+    """Execute scrapers sequentially with a single shared browser instance."""
     start = time.time()
 
     scrapers = _load_scrapers()
@@ -33,13 +35,20 @@ async def run_search(query: SearchQuery) -> SearchResponse:
     errors: list[ScraperError] = []
     by_source: dict[str, int] = {}
 
-    # Run sequentially to avoid 3 Chromium instances at once
-    for scraper in scrapers:
-        props, errs, site_name = await _safe_scrape(scraper, query)
-        all_properties.extend(props)
-        errors.extend(errs)
-        by_source[site_name] = len(props)
-        logger.info("%s: %d properties", site_name, len(props))
+    # Single browser instance shared across all scrapers (saves ~150MB RAM)
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        try:
+            for scraper in scrapers:
+                props, errs, site_name = await _safe_scrape(
+                    scraper, query, browser
+                )
+                all_properties.extend(props)
+                errors.extend(errs)
+                by_source[site_name] = len(props)
+                logger.info("%s: %d properties", site_name, len(props))
+        finally:
+            await browser.close()
 
     # Dedup
     dup_count = flag_duplicates(all_properties)
@@ -59,12 +68,12 @@ async def run_search(query: SearchQuery) -> SearchResponse:
 
 
 async def _safe_scrape(
-    scraper, query: SearchQuery, max_retries: int = 1
+    scraper, query: SearchQuery, browser=None
 ) -> tuple[list[Property], list[ScraperError], str]:
     """Run a single scraper with error handling."""
     site_name = scraper.site_name
     try:
-        props = await scraper.search(query)
+        props = await scraper.search(query, browser=browser)
         return (props, [], site_name)
     except Exception as exc:
         logger.error("%s failed: %s", site_name, exc)

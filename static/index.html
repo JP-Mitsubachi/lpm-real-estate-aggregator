@@ -451,26 +451,51 @@ async function handleSearch() {
   if (types.length > 0) query.propertyType = types;
 
   try {
-    const res = await fetch(API_BASE + '/api/search', {
+    // Step 1: Start async job
+    const startRes = await fetch(API_BASE + '/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(query),
     });
 
-    if (!res.ok) throw new Error('API error: ' + res.status);
+    if (!startRes.ok) throw new Error('API error: ' + startRes.status);
 
-    const data = await res.json();
-    allProperties = data.properties || [];
-    hasSearched = true;
+    const startData = await startRes.json();
+    const jobId = startData.jobId;
+    if (!jobId) throw new Error('No jobId returned');
 
-    // 検索結果でお気に入りデータを最新化
-    syncFavoritesWithSearchResults();
+    // Step 2: Poll for result
+    loadingText.textContent = '3サイトを巡回中…（最大2分ほどかかります）';
+    let elapsed = 0;
+    while (true) {
+      await new Promise(r => setTimeout(r, 3000));
+      elapsed += 3;
+      loadingText.textContent = '3サイトを巡回中… ' + elapsed + '秒経過';
 
-    // Show errors from meta if any
-    if (data.meta && data.meta.errors && data.meta.errors.length > 0) {
-      const errNames = data.meta.errors.map(e => e.siteName + ': ' + e.message).join(', ');
-      loadingText.textContent = '一部取得失敗: ' + errNames;
-      await new Promise(r => setTimeout(r, 2000));
+      const pollRes = await fetch(API_BASE + '/api/result/' + jobId);
+      if (!pollRes.ok) throw new Error('Poll error: ' + pollRes.status);
+
+      const pollData = await pollRes.json();
+      if (pollData.status === 'done') {
+        const data = pollData.result;
+        allProperties = data.properties || [];
+        hasSearched = true;
+        syncFavoritesWithSearchResults();
+
+        if (data.meta && data.meta.errors && data.meta.errors.length > 0) {
+          const errNames = data.meta.errors.map(e => e.siteName + ': ' + e.message).join(', ');
+          loadingText.textContent = '一部取得失敗: ' + errNames;
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        break;
+      } else if (pollData.status === 'error') {
+        throw new Error(pollData.error || 'Search failed');
+      }
+      // else status === 'running' → continue polling
+
+      if (elapsed > 300) {
+        throw new Error('タイムアウト（5分経過）');
+      }
     }
 
     document.getElementById('loadingState').classList.add('hidden');

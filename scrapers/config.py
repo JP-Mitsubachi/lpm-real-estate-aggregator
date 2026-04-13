@@ -83,9 +83,9 @@ SCRAPER_REGISTRY = {
 }
 
 # ---------- Global Settings ----------
-MAX_PAGES = 2  # Render Free tier: load待ち40秒+複数ページ=全体時間短縮のため2に制限
+MAX_PAGES = 1  # Render Free tier: 1ページ目のみ（メモリ・時間節約）
 REQUEST_INTERVAL_SEC = 1.0
-PAGE_TIMEOUT_MS = 30000  # 30秒（Render Freeのレスポンス時間制約対策）
+PAGE_TIMEOUT_MS = 20000  # 20秒（早期失敗してリソース解放）
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
