@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L-008 開発工程 — 不動産投資物件アグリゲーター</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeInUp 0.5s ease-out both; }
+  .fade-in-1 { animation-delay: 0.1s; }
+  .fade-in-2 { animation-delay: 0.2s; }
+  .fade-in-3 { animation-delay: 0.3s; }
+  .prompt-bubble { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .ai-bubble { background: #f0fdf4; border-left: 4px solid #22c55e; }
+  .debug-bubble { background: #fefce8; border-left: 4px solid #eab308; }
+  .timeline-line { position: absolute; left: 23px; top: 0; bottom: 0; width: 2px; background: #e5e7eb; }
+  .timeline-dot { position: absolute; left: 16px; top: 6px; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; z-index: 1; }
+  .skill-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div>
+      <h1 class="text-lg font-bold text-gray-900">L-008 開発工程レポート</h1>
+      <p class="text-sm text-gray-500">不動産投資物件アグリゲーター</p>
+    </div>
+    <span class="text-xs text-gray-400">2026-04-07 〜 04-12</span>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-6 py-10">
+
+  <!-- ===== Intro ===== -->
+  <section class="mb-12 fade-in">
+    <h2 class="text-2xl font-bold mb-4">概要</h2>
+    <div class="bg-white rounded-xl shadow-sm p-6 space-y-3">
+      <p>本レポートは、<strong>Claude Code（AI エージェント）</strong>と人間の対話によって、<strong>約5日間</strong>で不動産投資物件の横断検索Webアプリを企画・設計・開発・デプロイ・デバッグした全工程を記録したものです。</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+        <div class="bg-blue-50 rounded-lg p-3 text-center">
+          <div class="text-2xl font-bold text-blue-600">5日間</div>
+          <div class="text-xs text-gray-500">開発期間</div>
+        </div>
+        <div class="bg-green-50 rounded-lg p-3 text-center">
+          <div class="text-2xl font-bold text-green-600">15</div>
+          <div class="text-xs text-gray-500">コミット数</div>
+        </div>
+        <div class="bg-orange-50 rounded-lg p-3 text-center">
+          <div class="text-2xl font-bold text-orange-600">3サイト</div>
+          <div class="text-xs text-gray-500">横断検索</div>
+        </div>
+        <div class="bg-purple-50 rounded-lg p-3 text-center">
+          <div class="text-2xl font-bold text-purple-600">320件+</div>
+          <div class="text-xs text-gray-500">物件取得</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Skills Used ===== -->
+  <section class="mb-12 fade-in fade-in-1">
+    <h2 class="text-2xl font-bold mb-4">使用したスキル・ツール</h2>
+    <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="border border-gray-100 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="skill-tag bg-blue-100 text-blue-700">スキル</span>
+            <span class="font-semibold">/product-manager</span>
+          </div>
+          <p class="text-sm text-gray-600">要件定義・PRD作成。ユーザーストーリー、機能要件（FR）、非機能要件（NFR）を構造化したTech Specを生成</p>
+        </div>
+        <div class="border border-gray-100 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="skill-tag bg-blue-100 text-blue-700">スキル</span>
+            <span class="font-semibold">/pge</span>
+          </div>
+          <p class="text-sm text-gray-600">Plan→Generate→Evaluate ループ。Tech Specを2ラウンド回して品質向上（定量根拠の追加、サイト選定の再検証）</p>
+        </div>
+        <div class="border border-gray-100 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="skill-tag bg-blue-100 text-blue-700">スキル</span>
+            <span class="font-semibold">/developer</span>
+          </div>
+          <p class="text-sm text-gray-600">コード実装。FastAPI + Playwright によるバックエンド、Tailwind CSS によるフロントエンドを一気通貫で生成</p>
+        </div>
+        <div class="border border-gray-100 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="skill-tag bg-blue-100 text-blue-700">スキル</span>
+            <span class="font-semibold">/debug</span>
+          </div>
+          <p class="text-sm text-gray-600">構造化デバッグ。Render本番で0件になる問題を仮説→検証→切り分けの手順で根本原因を特定・修正</p>
+        </div>
+        <div class="border border-gray-100 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="skill-tag bg-green-100 text-green-700">ツール</span>
+            <span class="font-semibold">Playwright</span>
+          </div>
+          <p class="text-sm text-gray-600">ブラウザ自動操作。3つの不動産サイトからDOM解析・内部API呼び出しで物件データをスクレイピング</p>
+        </div>
+        <div class="border border-gray-100 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="skill-tag bg-green-100 text-green-700">ツール</span>
+            <span class="font-semibold">Render</span>
+          </div>
+          <p class="text-sm text-gray-600">クラウドホスティング。GitHub連携で自動デプロイ。Dockerコンテナで Chromium + Python を実行</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Tech Stack ===== -->
+  <section class="mb-12 fade-in fade-in-2">
+    <h2 class="text-2xl font-bold mb-4">技術スタック</h2>
+    <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+        <div class="bg-gray-50 rounded-lg p-3"><span class="font-semibold">バックエンド:</span> Python / FastAPI</div>
+        <div class="bg-gray-50 rounded-lg p-3"><span class="font-semibold">スクレイピング:</span> Playwright</div>
+        <div class="bg-gray-50 rounded-lg p-3"><span class="font-semibold">フロントエンド:</span> HTML / Tailwind CSS</div>
+        <div class="bg-gray-50 rounded-lg p-3"><span class="font-semibold">コンテナ:</span> Docker</div>
+        <div class="bg-gray-50 rounded-lg p-3"><span class="font-semibold">ホスティング:</span> Render</div>
+        <div class="bg-gray-50 rounded-lg p-3"><span class="font-semibold">CI/CD:</span> GitHub → Render 自動デプロイ</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Timeline ===== -->
+  <section class="mb-12 fade-in fade-in-3">
+    <h2 class="text-2xl font-bold mb-6">開発タイムライン</h2>
+
+    <div class="relative">
+      <div class="timeline-line"></div>
+
+      <!-- Day 1: 4/7 -->
+      <div class="relative pl-12 pb-10">
+        <div class="timeline-dot bg-blue-500"></div>
+        <div class="text-sm font-bold text-blue-600 mb-1">DAY 1 — 4月7日（月）</div>
+        <h3 class="text-lg font-bold mb-3">企画・設計・初期開発・デプロイ</h3>
+
+        <div class="space-y-3">
+          <div class="prompt-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-blue-600 mb-1">👤 てるさんのプロンプト</div>
+            <p class="text-sm">「投資用不動産の物件情報を複数サイトから横断検索できるWebアプリを作りたい。SUUMO、HOME'S、アットホーム、ふれんず（f-takken.com）が対象。PRDを作って」</p>
+          </div>
+          <div class="ai-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-green-600 mb-1">🤖 Claude の作業</div>
+            <ul class="text-sm space-y-1 list-disc list-inside">
+              <li><strong>/product-manager</strong> でTech Spec（PRD）を生成 — ユーザーストーリー3本、機能要件7項目、非機能要件4項目</li>
+              <li><strong>/pge</strong> でTech Specを2ラウンド評価・改善（各サイトの掲載件数を実調査し定量根拠を追加）</li>
+              <li>4サイトの技術調査を実施 → アットホームはWAF/CAPTCHAでブロック、楽待はCloudflare bot対策 → <strong>3サイト構成</strong>（HOME'S + SUUMO + ふれんず）に決定</li>
+            </ul>
+          </div>
+
+          <div class="prompt-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-blue-600 mb-1">👤 てるさんのプロンプト</div>
+            <p class="text-sm">「じゃあ作って」</p>
+          </div>
+          <div class="ai-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-green-600 mb-1">🤖 Claude の作業</div>
+            <ul class="text-sm space-y-1 list-disc list-inside">
+              <li><strong>/developer</strong> でバックエンド全体を生成（FastAPI + Playwright スクレイパー3本 + プラグイン構造）</li>
+              <li>フロントエンドをTailwind CSSで生成（物件カード・フィルタ・ソート・お気に入り機能）</li>
+              <li>Dockerfile作成 → GitHubリポジトリ作成 → Renderに初回デプロイ</li>
+              <li>ローカルテスト: HOME'S 245件 / SUUMO 100件 / ふれんず 200件 = <strong>545件取得成功</strong></li>
+            </ul>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
+            <strong>コミット:</strong> <code>0a1fa26</code> Initial deploy / <code>92ea64f</code> Render Free tier memory optimization
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 2: 4/8 -->
+      <div class="relative pl-12 pb-10">
+        <div class="timeline-dot bg-orange-500"></div>
+        <div class="text-sm font-bold text-orange-600 mb-1">DAY 2 — 4月8日（火）</div>
+        <h3 class="text-lg font-bold mb-3">SUUMO問題の発見と解決</h3>
+
+        <div class="space-y-3">
+          <div class="prompt-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-blue-600 mb-1">👤 てるさんのプロンプト</div>
+            <p class="text-sm">「SUUMOは投資用物件カテゴリがないから賃貸が混じるのでは？」</p>
+          </div>
+          <div class="ai-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-green-600 mb-1">🤖 Claude の作業</div>
+            <ul class="text-sm space-y-1 list-disc list-inside">
+              <li>一旦SUUMO削除 → 議論の末、<strong>中古マンション売買URL（/ms/chuko/）に限定 + 100万円価格ガード</strong>で復活</li>
+              <li>価格ガード（<code>MIN_INVESTMENT_PRICE_YEN = 1,000,000</code>）を models.py の1箇所に実装 → 全サイト自動適用（DRY）</li>
+              <li>実測で月額5500円・6万円・98万円の賃貸物件が正しく除外されることを確認</li>
+            </ul>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
+            <strong>コミット:</strong> <code>c16fe97</code> Remove SUUMO → <code>df5ad4a</code> Restore SUUMO + add price guard
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 3-4: 4/9 -->
+      <div class="relative pl-12 pb-10">
+        <div class="timeline-dot bg-yellow-500"></div>
+        <div class="text-sm font-bold text-yellow-600 mb-1">DAY 3〜4 — 4月9日（水）</div>
+        <h3 class="text-lg font-bold mb-3">本番0件問題の発覚と初期調査</h3>
+
+        <div class="space-y-3">
+          <div class="prompt-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-blue-600 mb-1">👤 てるさんのプロンプト</div>
+            <p class="text-sm">「Renderの本番でHOME'SとSUUMOが0件になってる。ふれんずだけ表示される」</p>
+          </div>
+          <div class="debug-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-yellow-700 mb-1">🔍 調査内容</div>
+            <ul class="text-sm space-y-1 list-disc list-inside">
+              <li><code>/api/search</code> を直接叩くと <code>meta.errors: []</code> なのに0件 → <strong>例外がスクレイパー内で握りつぶされている</strong>ことを発見</li>
+              <li>診断情報（HTTPステータス・ページタイトル・HTMLスニペット）を例外に付与して再raise する修正を実施</li>
+              <li><code>/api/debug/{site}</code> 軽量デバッグエンドポイントを新設</li>
+              <li>引き継ぎドキュメントを作成し、次のセッションに備える</li>
+            </ul>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
+            <strong>コミット:</strong> <code>4454fb4</code> 診断情報追加 / <code>3d85bef</code> wait_until修正 / <code>540619e</code> デバッグエンドポイント / <code>412e11f</code> HOME'S load待ち修正
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 5: 4/12 -->
+      <div class="relative pl-12 pb-4">
+        <div class="timeline-dot bg-green-500"></div>
+        <div class="text-sm font-bold text-green-600 mb-1">DAY 5 — 4月12日（土）</div>
+        <h3 class="text-lg font-bold mb-3">SUUMO完全復活・全3サイト稼働</h3>
+
+        <div class="space-y-3">
+          <div class="prompt-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-blue-600 mb-1">👤 てるさんのプロンプト</div>
+            <p class="text-sm">「L-008の作業を再開。引き継ぎドキュメントを読んで、Render環境でSUUMO/HOME'Sが0件になる問題を調査して」</p>
+          </div>
+          <div class="debug-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-yellow-700 mb-1">🔍 根本原因の特定（3層の問題）</div>
+            <div class="space-y-3 mt-2">
+              <div class="bg-white rounded-lg p-3 border border-yellow-200">
+                <div class="font-semibold text-sm">原因① HOME'S — ページロードのタイムアウト</div>
+                <p class="text-xs text-gray-600 mt-1"><code>wait_until="domcontentloaded"</code> だと874KBの重いページがRenderの低CPUでは30秒以内に完了しない → <code>wait_until="load"</code> に変更して解決</p>
+              </div>
+              <div class="bg-white rounded-lg p-3 border border-yellow-200">
+                <div class="font-semibold text-sm">原因② SUUMO — DOM要素の非表示ロード</div>
+                <p class="text-xs text-gray-600 mt-1">要素はDOMに存在（<code>query_selector_all</code>で20件確認）するが、Playwrightの<code>wait_for_selector</code>は<code>state='visible'</code>を要求してタイムアウト。SUUMOはJSで後から表示する動作 → ポーリング方式に変更</p>
+              </div>
+              <div class="bg-white rounded-lg p-3 border border-yellow-200">
+                <div class="font-semibold text-sm">原因③ SUUMO — データセンターIPの間欠ブロック</div>
+                <p class="text-xs text-gray-600 mt-1">RenderのIPからのアクセスに対し503を間欠的に返す → バックオフ付き最大3回リトライで対処</p>
+              </div>
+            </div>
+          </div>
+          <div class="ai-bubble rounded-lg p-4">
+            <div class="text-xs font-bold text-green-600 mb-1">✅ 最終結果</div>
+            <div class="grid grid-cols-3 gap-3 mt-2">
+              <div class="bg-white rounded-lg p-3 text-center border border-green-200">
+                <div class="text-lg font-bold text-orange-600">100件</div>
+                <div class="text-xs text-gray-500">HOME'S</div>
+              </div>
+              <div class="bg-white rounded-lg p-3 text-center border border-green-200">
+                <div class="text-lg font-bold text-green-600">20件</div>
+                <div class="text-xs text-gray-500">SUUMO</div>
+              </div>
+              <div class="bg-white rounded-lg p-3 text-center border border-green-200">
+                <div class="text-lg font-bold text-blue-600">200件</div>
+                <div class="text-xs text-gray-500">ふれんず</div>
+              </div>
+            </div>
+            <p class="text-sm text-green-700 font-semibold text-center mt-3">合計 320件 / errors: [] — 全3サイト稼働 🎉</p>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
+            <strong>コミット:</strong> <code>5f90fa6</code> 〜 <code>10b1a9f</code>（6コミットの仮説→検証→修正サイクル）
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /timeline -->
+  </section>
+
+  <!-- ===== Development Flow ===== -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold mb-4">開発フロー図</h2>
+    <div class="bg-white rounded-xl shadow-sm p-6 overflow-x-auto">
+      <div class="flex items-center gap-2 flex-wrap justify-center text-sm">
+        <div class="bg-blue-100 text-blue-800 rounded-lg px-4 py-2 font-semibold whitespace-nowrap">💬 要件整理</div>
+        <div class="text-gray-400">→</div>
+        <div class="bg-blue-100 text-blue-800 rounded-lg px-4 py-2 font-semibold whitespace-nowrap">📋 PRD作成<br><span class="text-xs font-normal">/product-manager</span></div>
+        <div class="text-gray-400">→</div>
+        <div class="bg-purple-100 text-purple-800 rounded-lg px-4 py-2 font-semibold whitespace-nowrap">🔄 品質評価<br><span class="text-xs font-normal">/pge × 2ラウンド</span></div>
+        <div class="text-gray-400">→</div>
+        <div class="bg-green-100 text-green-800 rounded-lg px-4 py-2 font-semibold whitespace-nowrap">⚡ 実装<br><span class="text-xs font-normal">/developer</span></div>
+        <div class="text-gray-400">→</div>
+        <div class="bg-orange-100 text-orange-800 rounded-lg px-4 py-2 font-semibold whitespace-nowrap">🚀 デプロイ<br><span class="text-xs font-normal">Render</span></div>
+        <div class="text-gray-400">→</div>
+        <div class="bg-yellow-100 text-yellow-800 rounded-lg px-4 py-2 font-semibold whitespace-nowrap">🐛 デバッグ<br><span class="text-xs font-normal">/debug</span></div>
+        <div class="text-gray-400">→</div>
+        <div class="bg-green-200 text-green-900 rounded-lg px-4 py-2 font-semibold whitespace-nowrap">✅ 完成</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Key Decisions ===== -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold mb-4">主要な設計判断</h2>
+    <div class="bg-white rounded-xl shadow-sm divide-y divide-gray-100">
+      <div class="p-4">
+        <div class="font-semibold text-sm">3サイト構成（HOME'S + SUUMO + ふれんず）</div>
+        <p class="text-xs text-gray-500 mt-1">アットホームはWAF/CAPTCHA、楽待はCloudflare bot対策で断念。安定的にデータ取得できる3サイトに集中</p>
+      </div>
+      <div class="p-4">
+        <div class="font-semibold text-sm">プラグイン構造（サイト追加が容易）</div>
+        <p class="text-xs text-gray-500 mt-1">SCRAPER_REGISTRY に登録するだけで新サイトを追加可能。各スクレイパーは BaseScraper を継承</p>
+      </div>
+      <div class="p-4">
+        <div class="font-semibold text-sm">100万円価格ガード（賃貸除外）</div>
+        <p class="text-xs text-gray-500 mt-1">models.py の1箇所で全サイト一律適用。月額5万円の賃貸物件を確実にフィルタ</p>
+      </div>
+      <div class="p-4">
+        <div class="font-semibold text-sm">順次実行（メモリ節約）</div>
+        <p class="text-xs text-gray-500 mt-1">Render Free の 512MB RAM では Chromium 3つ同時起動は不可。1サイトずつ順次実行</p>
+      </div>
+      <div class="p-4">
+        <div class="font-semibold text-sm">単一HTML構成</div>
+        <p class="text-xs text-gray-500 mt-1">ビルドツール不要。Tailwind CDN + vanilla JS でフロントエンドを完結</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Prompt Style ===== -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold mb-4">人間 × AI の役割分担</h2>
+    <div class="bg-white rounded-xl shadow-sm p-6">
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-bold text-blue-600 mb-3">👤 てるさん（人間）</h3>
+          <ul class="text-sm space-y-2 list-disc list-inside text-gray-700">
+            <li><strong>何を作るか</strong>を決める（要件・ゴール）</li>
+            <li><strong>判断基準</strong>を示す（「賃貸は混ぜるな」「代表が使う」）</li>
+            <li><strong>問題を報告</strong>する（「0件になってる」）</li>
+            <li><strong>最終判断</strong>を下す（「無料プランで行く」）</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold text-green-600 mb-3">🤖 Claude（AI）</h3>
+          <ul class="text-sm space-y-2 list-disc list-inside text-gray-700">
+            <li><strong>どう作るか</strong>を決める（技術選定・アーキテクチャ）</li>
+            <li><strong>全コード</strong>を書く（バック / フロント / Docker / デバッグ）</li>
+            <li><strong>調査・検証</strong>する（サイト技術調査・仮説検証サイクル）</li>
+            <li><strong>デプロイ・運用</strong>する（GitHub → Render 自動デプロイ）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== File Structure ===== -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold mb-4">ファイル構成</h2>
+    <div class="bg-white rounded-xl shadow-sm p-6">
+      <pre class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 overflow-x-auto"><code>L-008-deploy/
+├── main.py                 ← FastAPI アプリ本体
+├── models.py               ← Pydantic モデル（価格ガード含む）
+├── Dockerfile              ← Python 3.11 + Playwright Chromium
+├── requirements.txt
+├── static/
+│   └── index.html          ← フロントエンド（単一HTML）
+├── scrapers/
+│   ├── base.py             ← 共通パーサー + 診断関数
+│   ├── config.py           ← サイト設定 + レジストリ
+│   ├── homes.py            ← HOME'S スクレイパー
+│   ├── suumo.py            ← SUUMO スクレイパー
+│   └── ftakken.py          ← ふれんず スクレイパー（API方式）
+└── services/
+    ├── orchestrator.py     ← 順次実行エンジン
+    └── dedup.py            ← 重複候補フラグ</code></pre>
+    </div>
+  </section>
+
+</main>
+
+<footer class="border-t border-gray-200 bg-white py-6 text-center text-xs text-gray-400">
+  <p>L-008 不動産投資物件アグリゲーター — 開発工程レポート</p>
+  <p class="mt-1">Generated by Claude Code × てるさん | 2026-04-07 〜 04-12</p>
+</footer>
+
+</body>
+</html>

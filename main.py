@@ -43,6 +43,15 @@ async def serve_frontend():
     return HTMLResponse(content="<h1>Frontend not found</h1>", status_code=404)
 
 
+@app.get("/dev-process", response_class=HTMLResponse)
+async def serve_dev_process():
+    """Serve the development process report page."""
+    html_path = STATIC_DIR / "dev-process.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Page not found</h1>", status_code=404)
+
+
 @app.post("/api/search", response_model=SearchResponse)
 async def api_search(query: SearchQuery) -> SearchResponse:
     """Search properties across all configured sites."""
