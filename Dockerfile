@@ -13,9 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright Chromium + cleanup caches
-RUN playwright install chromium \
-    && rm -rf /root/.cache /tmp/*
+# Install Playwright Chromium
+RUN playwright install chromium
 
 # Copy all application code (including static/index.html)
 COPY . .
