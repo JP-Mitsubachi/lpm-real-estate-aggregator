@@ -12,6 +12,14 @@
   .no-yield-border { border-left: 4px solid #d1d5db; }
   .card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); transform: translateY(-1px); }
   .transition-card { transition: box-shadow 0.2s, transform 0.2s; }
+  /* Mobile drawer */
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 60; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .drawer-overlay.active { opacity: 1; pointer-events: auto; }
+  .drawer-panel { position: fixed; bottom: 0; left: 0; right: 0; max-height: 85vh; background: white; border-radius: 16px 16px 0 0; z-index: 70; transform: translateY(100%); transition: transform 0.3s ease; overflow-y: auto; padding-bottom: env(safe-area-inset-bottom); }
+  .drawer-panel.active { transform: translateY(0); }
+  .drawer-handle { width: 40px; height: 4px; background: #d1d5db; border-radius: 2px; margin: 10px auto; }
+  @media (min-width: 768px) { .drawer-overlay, .drawer-panel, .mobile-fab, .mobile-search-btn { display: none !important; } }
+  @media (max-width: 767px) { .desktop-sidebar { display: none !important; } }
 </style>
 <script>
 tailwind.config = {
@@ -32,17 +40,17 @@ tailwind.config = {
 
 <!-- Header -->
 <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-  <div class="max-w-screen-2xl mx-auto px-4 h-14 flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
-      <div>
-        <h1 class="text-lg font-bold text-gray-800 leading-tight">不動産投資物件アグリゲーター</h1>
-        <p class="text-xs text-gray-400 leading-tight">HOME'S・SUUMO・ふれんず 横断検索</p>
+  <div class="max-w-screen-2xl mx-auto px-3 md:px-4 h-12 md:h-14 flex items-center justify-between">
+    <div class="flex items-center gap-1.5 md:gap-2 min-w-0">
+      <svg class="w-5 h-5 md:w-6 md:h-6 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+      <div class="min-w-0">
+        <h1 class="text-sm md:text-lg font-bold text-gray-800 leading-tight truncate">物件アグリゲーター</h1>
+        <p class="text-[10px] md:text-xs text-gray-400 leading-tight hidden md:block">HOME'S・SUUMO・ふれんず 横断検索</p>
       </div>
     </div>
-    <button id="favHeaderBtn" onclick="toggleFavFilter()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-sm">
+    <button id="favHeaderBtn" onclick="toggleFavFilter()" class="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-xs md:text-sm flex-shrink-0">
       <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      <span>お気に入り</span>
+      <span class="hidden md:inline">お気に入り</span>
       <span id="favCount" class="bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
     </button>
   </div>
@@ -50,8 +58,8 @@ tailwind.config = {
 
 <div class="max-w-screen-2xl mx-auto flex">
 
-  <!-- Sidebar -->
-  <aside class="w-72 flex-shrink-0 bg-white border-r border-gray-200 p-5 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto">
+  <!-- Sidebar (desktop only) -->
+  <aside class="desktop-sidebar w-72 flex-shrink-0 bg-white border-r border-gray-200 p-5 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto">
     <h2 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-1.5">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
       検索条件
@@ -238,7 +246,7 @@ tailwind.config = {
   </aside>
 
   <!-- Main Content -->
-  <main class="flex-1 p-6">
+  <main class="flex-1 p-3 md:p-6 pb-20 md:pb-6">
     <!-- Welcome state -->
     <div id="welcomeState">
       <!-- お気に入り物件セクション (JS で動的に表示/非表示) -->
@@ -281,15 +289,15 @@ tailwind.config = {
 
     <!-- Results state -->
     <div id="resultsState" class="hidden">
-      <!-- Toolbar (サマリー統合: 件数 + サイト別内訳 + ソート) -->
-      <div class="flex items-center justify-between mb-4 bg-white border border-gray-200 rounded-lg px-4 py-2.5">
+      <!-- Toolbar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 md:mb-4 bg-white border border-gray-200 rounded-lg px-3 md:px-4 py-2 md:py-2.5 gap-2">
         <p class="text-sm text-gray-600">
           <span id="resultCount" class="font-bold text-gray-800 text-base">0</span>件の物件
-          <span id="siteBreakdown" class="text-gray-400 ml-1"></span>
+          <span id="siteBreakdown" class="text-gray-400 ml-1 text-xs md:text-sm"></span>
         </p>
         <div class="flex items-center gap-2">
-          <label class="text-xs text-gray-500">並び替え:</label>
-          <select id="sortSelect" onchange="applyFiltersAndSort()" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+          <label class="text-xs text-gray-500 hidden md:inline">並び替え:</label>
+          <select id="sortSelect" onchange="applyFiltersAndSort()" class="border border-gray-300 rounded-md px-2 md:px-3 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-primary focus:border-primary flex-1 sm:flex-none">
             <option value="yieldDesc">利回り（高い順）</option>
             <option value="yieldAsc">利回り（低い順）</option>
             <option value="priceAsc">価格（安い順）</option>
@@ -311,6 +319,103 @@ tailwind.config = {
       </div>
     </div>
   </main>
+</div>
+
+<!-- Mobile: Floating Action Buttons -->
+<div class="mobile-fab fixed bottom-4 left-0 right-0 z-50 flex justify-center gap-3 px-4 md:hidden">
+  <button onclick="openDrawer()" class="flex-1 max-w-[180px] bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-full shadow-lg text-sm flex items-center justify-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+    条件
+  </button>
+  <button onclick="handleSearch(); closeDrawer();" class="mobile-search-btn flex-1 max-w-[180px] bg-primary text-white font-bold py-3 rounded-full shadow-lg text-sm flex items-center justify-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    検索
+  </button>
+</div>
+
+<!-- Mobile: Filter Drawer -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="drawerPanel" class="drawer-panel">
+  <div class="drawer-handle"></div>
+  <div class="px-5 pt-1 pb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-base font-bold text-gray-800">検索条件</h2>
+      <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-600 p-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Mobile filter form (mirrors sidebar) -->
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">エリア</label>
+        <select id="mFilterArea" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm">
+          <option value="">全エリア</option>
+          <option value="博多区">福岡市博多区</option>
+          <option value="中央区">福岡市中央区</option>
+          <option value="南区">福岡市南区</option>
+          <option value="東区">福岡市東区</option>
+          <option value="西区">福岡市西区</option>
+          <option value="早良区">福岡市早良区</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">価格帯（万円）</label>
+        <div class="flex gap-2 items-center">
+          <select id="mPriceMin" class="flex-1 border border-gray-300 rounded-lg px-2 py-2.5 text-sm">
+            <option value="">下限なし</option>
+            <option value="100">100万</option>
+            <option value="300">300万</option>
+            <option value="500">500万</option>
+            <option value="1000">1,000万</option>
+            <option value="2000">2,000万</option>
+            <option value="3000">3,000万</option>
+            <option value="5000">5,000万</option>
+          </select>
+          <span class="text-gray-400 text-sm">〜</span>
+          <select id="mPriceMax" class="flex-1 border border-gray-300 rounded-lg px-2 py-2.5 text-sm">
+            <option value="">上限なし</option>
+            <option value="500">500万</option>
+            <option value="1000">1,000万</option>
+            <option value="2000">2,000万</option>
+            <option value="3000">3,000万</option>
+            <option value="5000">5,000万</option>
+            <option value="10000">1億</option>
+            <option value="30000">3億</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">利回り下限（%）</label>
+        <input id="mYieldMin" type="number" step="0.1" placeholder="例: 6.0" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">物件種別</label>
+        <div class="grid grid-cols-2 gap-2" id="mTypeChecks">
+          <label class="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2"><input type="checkbox" value="区分マンション" class="rounded text-primary"> 区分マンション</label>
+          <label class="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2"><input type="checkbox" value="一棟アパート" class="rounded text-primary"> 一棟アパート</label>
+          <label class="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2"><input type="checkbox" value="一棟マンション" class="rounded text-primary"> 一棟マンション</label>
+          <label class="flex items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2"><input type="checkbox" value="戸建" class="rounded text-primary"> 戸建</label>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">築年数</label>
+        <select id="mFilterAge" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm">
+          <option value="">指定なし</option>
+          <option value="5">5年以内</option>
+          <option value="10">10年以内</option>
+          <option value="20">20年以内</option>
+          <option value="30">30年以内</option>
+          <option value="40">40年以内</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mt-6 flex gap-3">
+      <button onclick="syncMobileToDesktop(); closeDrawer(); applyFiltersAndSort();" class="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-lg text-sm">条件を適用</button>
+      <button onclick="syncMobileToDesktop(); closeDrawer(); handleSearch();" class="flex-1 bg-primary text-white font-bold py-3 rounded-lg text-sm">検索する</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -737,6 +842,41 @@ function renderWelcomeFavorites() {
 document.querySelectorAll('#layoutChecks input, #typeChecks input, #structureChecks input').forEach(cb => {
   cb.addEventListener('change', applyFiltersAndSort);
 });
+
+// ---- Mobile Drawer ----
+function openDrawer() {
+  // Sync desktop → mobile before opening
+  syncDesktopToMobile();
+  document.getElementById('drawerOverlay').classList.add('active');
+  document.getElementById('drawerPanel').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('active');
+  document.getElementById('drawerPanel').classList.remove('active');
+  document.body.style.overflow = '';
+}
+function syncDesktopToMobile() {
+  document.getElementById('mFilterArea').value = document.getElementById('filterArea').value;
+  document.getElementById('mPriceMin').value = document.getElementById('priceMin').value;
+  document.getElementById('mPriceMax').value = document.getElementById('priceMax').value;
+  document.getElementById('mYieldMin').value = document.getElementById('yieldMin').value;
+  document.getElementById('mFilterAge').value = document.getElementById('filterAge').value;
+  // Type checkboxes
+  const dChecks = document.querySelectorAll('#typeChecks input[type=checkbox]');
+  const mChecks = document.querySelectorAll('#mTypeChecks input[type=checkbox]');
+  dChecks.forEach((dc, i) => { if (mChecks[i]) mChecks[i].checked = dc.checked; });
+}
+function syncMobileToDesktop() {
+  document.getElementById('filterArea').value = document.getElementById('mFilterArea').value;
+  document.getElementById('priceMin').value = document.getElementById('mPriceMin').value;
+  document.getElementById('priceMax').value = document.getElementById('mPriceMax').value;
+  document.getElementById('yieldMin').value = document.getElementById('mYieldMin').value;
+  document.getElementById('filterAge').value = document.getElementById('mFilterAge').value;
+  const dChecks = document.querySelectorAll('#typeChecks input[type=checkbox]');
+  const mChecks = document.querySelectorAll('#mTypeChecks input[type=checkbox]');
+  mChecks.forEach((mc, i) => { if (dChecks[i]) dChecks[i].checked = mc.checked; });
+}
 
 // Init
 updateFavCount();
