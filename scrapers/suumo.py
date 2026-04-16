@@ -91,9 +91,8 @@ class SuumoScraper(BaseScraper):
             # City specified but not in our mapping - search all
             logger.warning("SUUMO: city '%s' not in mapping, searching all wards", query.city)
 
-        # Default: major 3 wards only (memory-safe for Render)
-        major_wards = ["福岡市博多区", "福岡市中央区", "福岡市南区"]
-        return [base + city_codes[w] + "/" for w in major_wards if w in city_codes]
+        # Default: all 7 Fukuoka city wards (GitHub Actions has 7GB RAM)
+        return [base + code + "/" for code in city_codes.values()]
 
     # ---------- per-URL scraping ----------
     async def _scrape_url(self, page: Page, url: str) -> list[Property]:
