@@ -55,3 +55,9 @@ jobs:
             git commit -m "chore: daily scrape $(date -u +'%Y-%m-%d %H:%M UTC')"
             git push
           fi
+
+      - name: Trigger Pages deploy
+        if: success()
+        run: gh workflow run deploy-pages.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
