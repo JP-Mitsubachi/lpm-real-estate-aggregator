@@ -291,10 +291,13 @@ tailwind.config = {
     <div id="resultsState" class="hidden">
       <!-- Toolbar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 md:mb-4 bg-white border border-gray-200 rounded-lg px-3 md:px-4 py-2 md:py-2.5 gap-2">
-        <p class="text-sm text-gray-600">
-          <span id="resultCount" class="font-bold text-gray-800 text-base">0</span>件の物件
-          <span id="siteBreakdown" class="text-gray-400 ml-1 text-xs md:text-sm"></span>
-        </p>
+        <div>
+          <p class="text-sm text-gray-600">
+            <span id="resultCount" class="font-bold text-gray-800 text-base">0</span>件の物件
+            <span id="siteBreakdown" class="text-gray-400 ml-1 text-xs md:text-sm"></span>
+          </p>
+          <p id="dataInfo" class="text-[11px] text-gray-400 hidden"></p>
+        </div>
         <div class="flex items-center gap-2">
           <label class="text-xs text-gray-500 hidden md:inline">並び替え:</label>
           <select id="sortSelect" onchange="applyFiltersAndSort()" class="border border-gray-300 rounded-md px-2 md:px-3 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-primary focus:border-primary flex-1 sm:flex-none">
@@ -533,6 +536,7 @@ let hasSearched = false;
 // フロントエンドはそれを読み込むだけ。
 let dataLoadPromise = null;
 let dataLoadedAt = null;
+let dataDiff = null;
 
 async function loadStaticData() {
   if (dataLoadPromise) return dataLoadPromise;
@@ -541,6 +545,7 @@ async function loadStaticData() {
     if (!res.ok) throw new Error('データ取得失敗: ' + res.status);
     const data = await res.json();
     dataLoadedAt = data.generatedAt;
+    dataDiff = data.diff || null;
     return data;
   })();
   return dataLoadPromise;
@@ -604,6 +609,22 @@ function updateToolbar() {
     breakdownEl.textContent = '（' + siteText + '）';
   } else {
     breakdownEl.textContent = '';
+  }
+
+  // データ更新日時 + 差分サマリー
+  const infoEl = document.getElementById('dataInfo');
+  if (infoEl && dataLoadedAt) {
+    const dt = new Date(dataLoadedAt);
+    const dateStr = dt.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    let diffText = '';
+    if (dataDiff) {
+      const parts = [];
+      if (dataDiff.newCount > 0) parts.push('+' + dataDiff.newCount + '件 新着');
+      if (dataDiff.removedCount > 0) parts.push('-' + dataDiff.removedCount + '件 掲載終了');
+      if (parts.length > 0) diffText = ' / ' + parts.join(' ');
+    }
+    infoEl.textContent = '更新: ' + dateStr + diffText;
+    infoEl.classList.remove('hidden');
   }
 }
 
@@ -733,7 +754,7 @@ function buildCardHTML(p, options) {
 
   return `
   <a href="${p.sourceUrl}" target="_blank" rel="noopener" class="block bg-white rounded-lg border border-gray-200 overflow-hidden card-hover transition-card relative ${borderClass}">
-    ${isDup ? '<span class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded z-10">重複候補</span>' : ''}
+    ${p.isNew ? '<span class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded z-10">NEW</span>' : isDup ? '<span class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded z-10">重複候補</span>' : ''}
     <button onclick="event.preventDefault();event.stopPropagation();toggleFav('${p.id}')" class="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full ${isFav ? 'bg-yellow-100' : 'bg-white/80 hover:bg-gray-100'} transition-colors" title="お気に入り">
       <svg class="w-5 h-5 ${isFav ? 'text-yellow-500' : 'text-gray-400'}" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
     </button>

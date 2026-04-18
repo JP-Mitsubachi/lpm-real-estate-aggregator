@@ -38,21 +38,48 @@ async def main():
     result = await run_search(query)
     elapsed = (datetime.utcnow() - start).total_seconds()
 
+    # Load previous data for diff detection
+    out_path = Path(args.output)
+    prev_ids: set[str] = set()
+    if out_path.exists():
+        try:
+            prev_data = json.loads(out_path.read_text(encoding="utf-8"))
+            prev_ids = {p["id"] for p in prev_data.get("properties", [])}
+            logger.info("Previous data: %d properties", len(prev_ids))
+        except Exception:
+            logger.warning("Could not read previous data, treating all as new")
+
     # Convert to plain dict for JSON
+    new_props = []
+    current_ids: set[str] = set()
+    for p in result.properties:
+        d = p.model_dump()
+        current_ids.add(d["id"])
+        d["isNew"] = d["id"] not in prev_ids  # 前回にないIDは新着
+        new_props.append(d)
+
+    removed_count = len(prev_ids - current_ids)
+
     output = {
-        "properties": [p.model_dump() for p in result.properties],
+        "properties": new_props,
         "meta": result.meta.model_dump(),
+        "diff": {
+            "newCount": sum(1 for p in new_props if p["isNew"]),
+            "removedCount": removed_count,
+            "totalPrev": len(prev_ids),
+        },
         "generatedAt": datetime.utcnow().isoformat() + "Z",
         "elapsedSec": round(elapsed, 1),
     }
 
-    out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
 
     logger.info("Wrote %d properties to %s (%.1fs)",
                 len(output["properties"]), out_path, elapsed)
     logger.info("By source: %s", output["meta"]["bySource"])
+    logger.info("Diff: +%d new, -%d removed (prev: %d)",
+                output["diff"]["newCount"], removed_count, len(prev_ids))
 
     if output["meta"].get("errors"):
         logger.warning("Errors: %s", output["meta"]["errors"])
