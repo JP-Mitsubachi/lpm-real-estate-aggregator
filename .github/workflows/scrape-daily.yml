@@ -13,11 +13,22 @@ on:
 
 permissions:
   contents: write  # data.json を commit するために必要
+  pages: write     # GitHub Pages にデプロイするために必要
+  id-token: write  # Pages デプロイの OIDC 認証に必要
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    # Pages デプロイ URL をジョブ環境として公開
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -56,8 +67,20 @@ jobs:
             git push
           fi
 
-      - name: Trigger Pages deploy
+      # deploy-pages.yml への workflow_dispatch は GITHUB_TOKEN では 403 になり、
+      # かつ bot push は deploy-pages.yml の push トリガーを発火しない（GH 無限ループ防止仕様）。
+      # そのため scrape 完了後に同一ジョブ内で Pages デプロイを直接実行する。
+      - name: Setup Pages
         if: success()
-        run: gh workflow run deploy-pages.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        if: success()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./static
+
+      - name: Deploy to GitHub Pages
+        if: success()
+        id: deployment
+        uses: actions/deploy-pages@v4
