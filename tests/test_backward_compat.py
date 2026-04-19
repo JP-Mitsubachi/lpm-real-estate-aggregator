@@ -30,8 +30,8 @@ def test_existing_properties_load_into_new_model(existing_payload):
     """Every entry in production properties.json must instantiate cleanly.
 
     Extra fields like `isNew` (added downstream of the model) are tolerated
-    by pydantic's default ignore policy. 既存 JSON が v2.3/v2.4 でスコア済みでも、
-    v2.5 モデルに読み込めることを確認する（後方互換）。
+    by pydantic's default ignore policy. 既存 JSON が v2.3/v2.4/v2.5/v2.6 で
+    スコア済みでも、現行モデルに読み込めることを確認する（後方互換）。
     """
     props = existing_payload.get("properties", [])
     assert props, "properties.json has no properties; cannot validate compat"
@@ -43,8 +43,8 @@ def test_existing_properties_load_into_new_model(existing_payload):
         except Exception as e:  # noqa: BLE001
             failures.append((raw.get("id", "<no-id>"), str(e)))
             continue
-        # 既存 dealModelVersion はそのまま読み込めるべき (v2.3 / v2.4 / v2.5)
-        assert p.dealModelVersion in ("v2.3", "v2.4", "v2.5"), \
+        # 既存 dealModelVersion はそのまま読み込めるべき (v2.3 / v2.4 / v2.5 / v2.6)
+        assert p.dealModelVersion in ("v2.3", "v2.4", "v2.5", "v2.6"), \
             f"unexpected dealModelVersion: {p.dealModelVersion}"
         # フィールドが None で来た場合は None のまま、値があれば値が保たれること
         # (既存スコア済み JSON を破壊しない)

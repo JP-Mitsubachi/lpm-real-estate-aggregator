@@ -83,7 +83,10 @@ SCRAPER_REGISTRY = {
 }
 
 # ---------- Global Settings ----------
-MAX_PAGES = 10  # GitHub Actions (7GB RAM): ページ数を解放して件数を最大化
+MAX_PAGES = 10  # GitHub Actions (7GB RAM): ページ数を解放して件数を最大化（SUUMO/ふれんず用デフォルト）
+# HOME'S は実利回り掲載物件のため Sランク選定に直結。取得件数を優先して拡張する。
+# SUUMO/ふれんずは MAX_PAGES のままにすることで現状維持（Render Free の負荷も保持）。
+HOMES_MAX_PAGES = 30
 REQUEST_INTERVAL_SEC = 1.0
 PAGE_TIMEOUT_MS = 30000  # 30秒
 USER_AGENT = (

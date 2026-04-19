@@ -60,14 +60,43 @@ def get_benchmark_cap_rate(p: Property) -> float:
 
 # ===== 収益スコア (yieldBenchmarkScore) =====================================
 
+
+def _yield_score_absolute(yld: float, table: list[dict]) -> int:
+    """絶対利回り → 段階点。降順で最初に閾値を満たした score を返す。
+
+    table は [{"min_yield": 9.0, "score": 30}, ..., {"min_yield": 0.0, "score": 0}]
+    の形を想定する。順序は気にせず、min_yield 降順にソートして評価する。
+    """
+    # min_yield 降順で評価
+    sorted_table = sorted(table, key=lambda r: -float(r["min_yield"]))
+    for row in sorted_table:
+        if yld >= float(row["min_yield"]):
+            return int(row["score"])
+    return 0
+
+
 def calc_yield_benchmark_score(p: Property) -> Optional[int]:
-    """0-30 点。+20%乖離で30点。
+    """0-30 点。
+
+    v2.6: 絶対利回りベースの評価モードに切替（mode="absolute"）。
+        利回り%      → score
+        9.0+         → 30
+        8.0-8.9      → 25
+        7.0-7.9      → 20
+        6.0-6.9      → 15
+        5.0-5.9      → 10
+        4.0-4.9      →  5
+        <4.0         →  0
+        estimated（yieldSourceConfidence != "actual"）の場合は最後に min(cap // 2, score)
+        で半クリップし、信頼度差を保つ。
+
+    互換性: scoring.yaml の `yield_score.mode` を "deviation" に切り替えると
+        旧ロジック（(yld - benchmark) / benchmark * multiplier、cap=30、estimated
+        は cap//2 にクリップ）にフォールバックする。
 
     v2.5 B案:
         yieldGross が None でも `yieldEstimated` (+ yieldSourceConfidence) があれば
-        それを利用する。ただし estimated の場合（actual 以外）は最大点を半分に
-        クリップする（30 → 15）ため、掲載値のある物件が有利に維持される。
-        どちらも None なら従来どおり None を返す。
+        それを利用する。どちらも None なら None を返す。
     """
     # 利用する利回り値と「actual かどうか」を決定
     yld: Optional[float] = None
@@ -83,16 +112,26 @@ def calc_yield_benchmark_score(p: Property) -> Optional[int]:
         return None
 
     cfg = get_default_config()
+    ys_cfg = cfg["yield_score"]
+    cap = int(ys_cfg["cap"])
+    mode = str(ys_cfg.get("mode", "absolute")).lower()
+    effective_cap = cap if is_actual else cap // 2
+
+    if mode == "absolute":
+        table = ys_cfg.get("absolute_threshold_table")
+        if not table:
+            # 設定不備時は安全側に 0 を返す（運用検知のため None ではなく 0）
+            return 0
+        score = _yield_score_absolute(float(yld), table)
+        return int(min(effective_cap, max(0, score)))
+
+    # 旧 deviation モード（後方互換）
     bench = get_benchmark_cap_rate(p)
     if bench <= 0:
         return None
-    cap = int(cfg["yield_score"]["cap"])
-    multiplier = float(cfg["yield_score"]["multiplier"])
+    multiplier = float(ys_cfg["multiplier"])
     deviation_pct = (yld - bench) / bench * 100
     raw = deviation_pct * multiplier
-
-    # estimated の場合は最大点を半分にクリップ（過剰評価防止）
-    effective_cap = cap if is_actual else cap // 2
     return int(min(effective_cap, max(0, raw)))
 
 
@@ -371,6 +410,8 @@ def score_property(
 
     v2.5: medians 引数を受け取ると yieldMedianInArea / pricePerSqmMedian /
           yieldDeviation を書き戻す（M2 UI の中央値比表示用）。
+    v2.6: yield_score を絶対利回りモードへ切替（SUUMO/ふれんずの構造的 0 点問題を解消）。
+          ペルソナ機能（personaMatches/personaStars）は不変。
     """
     p.dealModelVersion = DEAL_MODEL_VERSION_DEFAULT
 

@@ -26,7 +26,7 @@ def test_minimal_property_constructs():
     assert p.dealScore is None
     assert p.dealRank is None
     assert p.dealReasons == []
-    assert p.dealModelVersion == "v2.5"
+    assert p.dealModelVersion == "v2.6"
     assert p.isAutoFallback is False
     # v2.1 new field defaults
     assert p.walkMinutes is None
@@ -129,9 +129,9 @@ def test_deal_model_version_overridable():
     assert p.dealModelVersion == "v2.5"
 
 
-def test_deal_model_version_default_v23():
+def test_deal_model_version_default_v26():
     p = Property(id="x", name="n")
-    assert p.dealModelVersion == "v2.5"
+    assert p.dealModelVersion == "v2.6"
 
 
 def test_is_auto_fallback_flag():
@@ -182,7 +182,7 @@ def test_full_scored_property_construction():
     assert p.dealRank == "S"
     assert p.dealScore == 88
     assert len(p.dealReasons) == 3
-    assert p.dealModelVersion == "v2.5"
+    assert p.dealModelVersion == "v2.6"
     assert p.isAutoFallback is False
     assert p.locationScore == 30
     assert p.loanScore == 20
@@ -301,6 +301,6 @@ def test_composite_rank_value_out_of_range_rejected(v):
 
 
 def test_v2_2_default_model_version():
-    """v2.2 で DEAL_MODEL_VERSION_DEFAULT が bump."""
+    """v2.6 で DEAL_MODEL_VERSION_DEFAULT が bump (yield_score 絶対値モード)."""
     p = Property(id="x", name="n")
-    assert p.dealModelVersion == "v2.5"
+    assert p.dealModelVersion == "v2.6"

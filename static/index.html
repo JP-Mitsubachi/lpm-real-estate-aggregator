@@ -242,13 +242,16 @@ tailwind.config = {
     <div class="mb-4 pb-4 border-b border-gray-100">
       <label class="block text-xs font-semibold text-gray-600 mb-2">投資ランク</label>
       <div class="flex flex-wrap gap-1.5" id="rankChecks">
-        <label class="rank-filter-label"><input type="checkbox" value="S" checked class="rounded text-primary"> <span class="rank-badge rank-S" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">S</span></label>
+        <label class="rank-filter-label"><input type="checkbox" value="S" checked class="rounded text-primary"> <span class="rank-badge rank-S" style="min-width:22px;height:18px;font-size:10px;padding:0 5px" title="実利回り掲載物件のみ（HOME&#39;S）" aria-label="Sランク：実利回り掲載物件のみ">S</span></label>
         <label class="rank-filter-label"><input type="checkbox" value="A" checked class="rounded text-primary"> <span class="rank-badge rank-A" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">A</span></label>
         <label class="rank-filter-label"><input type="checkbox" value="B" checked class="rounded text-primary"> <span class="rank-badge rank-B" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">B</span></label>
         <label class="rank-filter-label"><input type="checkbox" value="C" class="rounded text-primary"> <span class="rank-badge rank-C" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">C</span></label>
         <label class="rank-filter-label"><input type="checkbox" value="D" class="rounded text-primary"> <span class="rank-badge rank-D" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">D</span></label>
         <label class="rank-filter-label"><input type="checkbox" value="N/A" class="rounded text-primary"> <span class="rank-badge rank-NA" style="min-width:32px;height:18px;font-size:10px;padding:0 5px">N/A</span></label>
       </div>
+      <p class="mt-2 text-[11px] leading-relaxed text-gray-500">
+        💡 <span class="font-semibold text-gray-600">S ランクは実利回り掲載物件（HOME&#39;S）に限定</span>されます。SUUMO/ふれんずは推計利回りのため最高 A ランクまで。多視点での評価は下の「投資スタイル」をご活用ください。
+      </p>
     </div>
 
     <!-- 1. Area -->
@@ -557,13 +560,16 @@ tailwind.config = {
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-2">投資ランク</label>
         <div class="flex flex-wrap gap-2" id="mRankChecks">
-          <label class="rank-filter-label"><input type="checkbox" value="S" checked class="rounded text-primary"> <span class="rank-badge rank-S" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">S</span></label>
+          <label class="rank-filter-label"><input type="checkbox" value="S" checked class="rounded text-primary"> <span class="rank-badge rank-S" style="min-width:22px;height:18px;font-size:10px;padding:0 5px" title="実利回り掲載物件のみ（HOME&#39;S）" aria-label="Sランク：実利回り掲載物件のみ">S</span></label>
           <label class="rank-filter-label"><input type="checkbox" value="A" checked class="rounded text-primary"> <span class="rank-badge rank-A" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">A</span></label>
           <label class="rank-filter-label"><input type="checkbox" value="B" checked class="rounded text-primary"> <span class="rank-badge rank-B" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">B</span></label>
           <label class="rank-filter-label"><input type="checkbox" value="C" class="rounded text-primary"> <span class="rank-badge rank-C" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">C</span></label>
           <label class="rank-filter-label"><input type="checkbox" value="D" class="rounded text-primary"> <span class="rank-badge rank-D" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">D</span></label>
           <label class="rank-filter-label"><input type="checkbox" value="N/A" class="rounded text-primary"> <span class="rank-badge rank-NA" style="min-width:32px;height:18px;font-size:10px;padding:0 5px">N/A</span></label>
         </div>
+        <p class="mt-2 text-[11px] leading-relaxed text-gray-500">
+          💡 <span class="font-semibold text-gray-600">S ランクは実利回り掲載物件（HOME&#39;S）に限定</span>されます。SUUMO/ふれんずは推計利回りのため最高 A ランクまで。
+        </p>
       </div>
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">エリア</label>
@@ -1042,10 +1048,14 @@ function extractWalkMinutes(station) {
 }
 
 // M2: ランク表示のヘルパー（絵文字なしのプロ向けデザイン）
+// S ランクは実利回り掲載物件（HOME'S）に限定されるため、ツールチップで明示する。
 function rankBadgeHTML(rank) {
   const r = rank || 'N/A';
   const cls = r === 'N/A' ? 'rank-NA' : 'rank-' + r;
-  return `<span class="rank-badge ${cls}" title="投資ランク ${r}">${r}</span>`;
+  const tip = r === 'S'
+    ? '投資ランク S：実利回り掲載物件のみ（HOME\u2019S）'
+    : '投資ランク ' + r;
+  return `<span class="rank-badge ${cls}" title="${tip}" aria-label="${tip}">${r}</span>`;
 }
 
 function locationBadgeHTML(grade) {

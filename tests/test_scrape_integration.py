@@ -1,7 +1,7 @@
 """Integration tests for scrape.py — orchestrator + scoring + AI enrichment.
 
 orchestrator.run_search を mock し、Property リストを差し込んで
-(a) v2.5 score が全件付与される
+(a) v2.6 score が全件付与される
 (b) --with-ai フラグ無し (use_ai=False) の場合、AI モジュールが呼ばれない
 (c) --with-ai フラグありで前日 properties.json なし → 全件 AI 呼び出し
 (d) --with-ai フラグありで同じ入力を2回流す → 2回目の AI call_count が 0
@@ -88,7 +88,7 @@ def _run_scrape(args: list[str], mock_search_props: list[Property]):
 # ============================================================================
 
 def test_scrape_assigns_v24_score_to_all_props(tmp_path, monkeypatch):
-    """orchestrator → score_property で v2.5 が全件付与される (--with-ai 無し)."""
+    """orchestrator → score_property で v2.6 が全件付与される (--with-ai 無し)."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     out = tmp_path / "out.json"
     props = _make_props(3)
@@ -99,7 +99,7 @@ def test_scrape_assigns_v24_score_to_all_props(tmp_path, monkeypatch):
     data = json.loads(out.read_text(encoding="utf-8"))
     assert len(data["properties"]) == 3
     for p in data["properties"]:
-        assert p["dealModelVersion"] == "v2.5"
+        assert p["dealModelVersion"] == "v2.6"
         assert p["dealRank"] in ("S", "A", "B", "C", "D", "N/A")
         # fallback の3行 reason が入っている
         assert isinstance(p["dealReasons"], list)
@@ -141,7 +141,7 @@ def test_scrape_with_ai_no_previous_calls_api_for_all(tmp_path, monkeypatch):
     data = json.loads(out.read_text(encoding="utf-8"))
     # meta.scoring が積まれている
     assert data["meta"]["scoring"]["aiCallCount"] == 3
-    assert data["meta"]["scoring"]["modelVersion"] == "v2.5"
+    assert data["meta"]["scoring"]["modelVersion"] == "v2.6"
     assert data["meta"]["scoring"]["fallbackCount"] == 0
     assert data["meta"]["scoring"]["withAi"] is True
 
@@ -191,7 +191,7 @@ def test_scrape_writes_meta_scoring_section(tmp_path, monkeypatch):
     )
     data = json.loads(out.read_text(encoding="utf-8"))
     assert "scoring" in data["meta"]
-    assert data["meta"]["scoring"]["modelVersion"] == "v2.5"
+    assert data["meta"]["scoring"]["modelVersion"] == "v2.6"
     assert data["meta"]["scoring"]["withAi"] is False
     assert data["meta"]["scoring"]["costJpy"] == 0.0
 

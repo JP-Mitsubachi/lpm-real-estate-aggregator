@@ -14,7 +14,7 @@ from models import Property, SearchQuery
 from scrapers.base import BaseScraper, capture_diagnostics
 from scrapers.config import (
     HOMES_SELECTORS as SEL,
-    MAX_PAGES,
+    HOMES_MAX_PAGES as MAX_PAGES,  # HOME'S 専用上限（実利回り掲載のため拡張）
     REQUEST_INTERVAL_SEC,
     PAGE_TIMEOUT_MS,
     USER_AGENT,

@@ -14,7 +14,7 @@ DEAL_RANKS = ("S", "A", "B", "C", "D", "N/A")
 LOCATION_GRADES = ("S", "A", "B", "C", "D")
 LINE_RANKS = ("S", "A", "B", "C")
 HAZARD_FLAGS = ("high", "medium", "low")
-DEAL_MODEL_VERSION_DEFAULT = "v2.5"
+DEAL_MODEL_VERSION_DEFAULT = "v2.6"
 
 
 class SearchQuery(BaseModel):

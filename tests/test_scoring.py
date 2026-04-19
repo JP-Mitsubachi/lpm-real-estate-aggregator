@@ -62,23 +62,27 @@ def test_benchmark_default_fallback():
 
 
 # --- 収益スコア (yieldBenchmarkScore) ------------------------------------
+# v2.6: 絶対利回りモード。閾値テーブル (config/scoring.yaml: absolute_threshold_table):
+#   9.0%+ → 30 / 8.0-8.9 → 25 / 7.0-7.9 → 20 / 6.0-6.9 → 15 /
+#   5.0-5.9 → 10 / 4.0-4.9 → 5 / <4.0 → 0
+# estimated は最後に min(cap // 2, score) でクリップ（半分）。
 
-def test_yield_score_at_benchmark_is_zero():
-    """ベンチマーク同等は0点."""
+def test_yield_score_at_benchmark_six_pct():
+    """v2.6 絶対値: 利回り 6.0% は 15 点（旧 deviation モードでは 0 だった）."""
     p = Property(id="x", name="n", city="福岡市博多区", layout="2LDK", yieldGross=6.0)
-    assert calc_yield_benchmark_score(p) == 0
+    assert calc_yield_benchmark_score(p) == 15
 
 
-def test_yield_score_below_benchmark_is_zero():
+def test_yield_score_five_pct():
+    """v2.6 絶対値: 利回り 5.0% は 10 点（旧 deviation モードでは 0）."""
     p = Property(id="x", name="n", city="福岡市博多区", layout="2LDK", yieldGross=5.0)
-    assert calc_yield_benchmark_score(p) == 0
+    assert calc_yield_benchmark_score(p) == 10
 
 
-def test_yield_score_above_benchmark_scaled():
-    """+20%乖離で30点満点."""
-    # bench 6.0 の +20% = 7.2 → 30点
+def test_yield_score_seven_two_pct():
+    """v2.6 絶対値: 利回り 7.2% は 7.0% 帯で 20 点（旧 deviation では 30）."""
     p = Property(id="x", name="n", city="福岡市博多区", layout="2LDK", yieldGross=7.2)
-    assert calc_yield_benchmark_score(p) == 30
+    assert calc_yield_benchmark_score(p) == 20
 
 
 def test_yield_score_capped_at_30():
@@ -92,9 +96,81 @@ def test_yield_score_none_when_yield_missing():
 
 
 def test_yield_score_kitakyushu_higher_benchmark():
-    """北九州 bench 10.0 → 利回り12は +20%乖離で 30点."""
+    """北九州 12% → 絶対値モードでは 9.0%+ で満点 30."""
     p = Property(id="x", name="n", city="北九州市小倉北区", layout="2LDK", yieldGross=12.0)
     assert calc_yield_benchmark_score(p) == 30
+
+
+# --- v2.6 絶対値モード 専用テスト（受入条件 5件）-----------------------------
+
+
+def test_calc_yield_score_absolute_actual_high():
+    """actual 9.5% → 30 点（9.0%+ 帯満点）."""
+    p = Property(
+        id="x", name="n", city="福岡市博多区", layout="2LDK",
+        yieldGross=9.5,
+    )
+    assert calc_yield_benchmark_score(p) == 30
+
+
+def test_calc_yield_score_absolute_actual_mid():
+    """actual 6.5% → 15 点（6.0-6.9 帯）."""
+    p = Property(
+        id="x", name="n", city="福岡市博多区", layout="2LDK",
+        yieldGross=6.5,
+    )
+    assert calc_yield_benchmark_score(p) == 15
+
+
+def test_calc_yield_score_absolute_actual_low():
+    """actual 4.0% → 5 点（4.0-4.9 帯境界）."""
+    p = Property(
+        id="x", name="n", city="福岡市博多区", layout="2LDK",
+        yieldGross=4.0,
+    )
+    assert calc_yield_benchmark_score(p) == 5
+
+
+def test_calc_yield_score_absolute_estimated_clipped():
+    """estimated 9.5% → 30 → 信頼度クリップで 15 点."""
+    p = Property(
+        id="x", name="n", city="福岡市博多区", layout="2LDK",
+        yieldGross=None,
+    )
+    p.yieldEstimated = 9.5
+    p.yieldSourceConfidence = "median"
+    assert calc_yield_benchmark_score(p) == 15
+
+
+def test_calc_yield_score_absolute_estimated_below_threshold():
+    """estimated 5.0% → 10 点（クリップ前 10、クリップ上限 15 → 10 が通る）."""
+    p = Property(
+        id="x", name="n", city="福岡市博多区", layout="2LDK",
+        yieldGross=None,
+    )
+    p.yieldEstimated = 5.0
+    p.yieldSourceConfidence = "median"
+    assert calc_yield_benchmark_score(p) == 10
+
+
+def test_calc_yield_score_absolute_below_4_pct_zero():
+    """3.5% は閾値未満で 0 点."""
+    p = Property(
+        id="x", name="n", city="福岡市博多区", layout="2LDK",
+        yieldGross=3.5,
+    )
+    assert calc_yield_benchmark_score(p) == 0
+
+
+def test_calc_yield_score_absolute_estimated_low_clip_no_effect():
+    """estimated 7.5% → 20 → クリップ 15 で 15 点（クリップが効くケース）."""
+    p = Property(
+        id="x", name="n", city="福岡市博多区", layout="2LDK",
+        yieldGross=None,
+    )
+    p.yieldEstimated = 7.5
+    p.yieldSourceConfidence = "fallback"
+    assert calc_yield_benchmark_score(p) == 15
 
 
 # --- 構造推定 -------------------------------------------------------------
@@ -401,7 +477,7 @@ def test_score_property_full_s_example():
     assert scored.locationScore == 30
     assert scored.loanScore == 20
     assert scored.yieldBenchmarkScore is not None and scored.yieldBenchmarkScore >= 15
-    assert scored.dealModelVersion == "v2.5"
+    assert scored.dealModelVersion == "v2.6"
     assert scored.locationGrade == "S"
     assert scored.lineRank == "S"
 
@@ -807,7 +883,7 @@ def test_apply_s_rank_guard_unknown_property_type_uses_thresholds():
 def test_score_property_sets_v25_model_version():
     p = _s_rank_candidate()
     scored = score_property(p)
-    assert scored.dealModelVersion == "v2.5"
+    assert scored.dealModelVersion == "v2.6"
 
 
 # ===== v2.5: medians 書き戻し（BUG FIX） ===================================

@@ -1,11 +1,12 @@
-# L-008 AI掘り出し物スコアリング設定 v2.1 (PRD §5 v2.1)
+# L-008 AI掘り出し物スコアリング設定 v2.6 (PRD §5 / yield_score 改修)
 # Source: company/research/topics/2026-04-19-real-estate-scoring-research.md
 # Generated: 2026-04-19 (PGE Round 1)
+# Updated:   2026-04-19 (yield_score 絶対値モード導入 — SUUMO/ふれんず対応)
 #
 # 値変更時は services/config_loader.py のバリデーションを必ず通す。
-# v2.0 は git に履歴が残っている。
+# v2.0/v2.5 は git に履歴が残っている。
 
-version: "2.1"
+version: "2.6"
 
 # --- 5軸の配点（合計100必須） ---
 weights:
@@ -101,10 +102,30 @@ cap_rate_benchmark:
 single_layout_keywords: ["1R", "1K", "1DK", "1LDK", "ワンルーム"]
 
 # --- 収益スコア配点 ---
+# v2.6: 絶対利回りベースの「絶対値モード」を導入。
+#   旧 deviation モード（ベンチマーク乖離率 × multiplier → cap）は SUUMO/ふれんずの
+#   yieldEstimated（≒エリア中央値）が deviation≈0 で 0 点になり、yield_score>=15 が
+#   1件も出ない構造的バグを起こしていた。
+#   絶対値モードでは 4%/5%/.../9%+ の閾値テーブルで段階点を付け、
+#   estimated 信頼度の場合のみ最大点を半分（cap // 2）にクリップして信頼度補正を保つ。
+#
+# mode: "absolute"  → absolute_threshold_table を参照（推奨・デフォルト）
+# mode: "deviation" → 旧ロジック（multiplier × cap）を維持
 yield_score:
-  multiplier: 1.5            # +20%乖離 = 30点（×1.5）
-  cap: 30
-  benchmark_floor_score: 0   # ベンチマーク以下は0点
+  mode: "absolute"
+  multiplier: 1.5            # 旧 deviation モード用: +20%乖離 = 30点（×1.5）
+  cap: 30                    # estimated は cap // 2 に半クリップ
+  benchmark_floor_score: 0   # 旧 deviation モード用: ベンチマーク以下は0点
+  # 絶対利回り → 点数。降順で評価し、最初に満たした閾値の score を返す。
+  # estimated（actual 以外）の場合のみ最後に min(cap // 2, score) でクリップ。
+  absolute_threshold_table:
+    - {min_yield: 9.0, score: 30}
+    - {min_yield: 8.0, score: 25}
+    - {min_yield: 7.0, score: 20}
+    - {min_yield: 6.0, score: 15}
+    - {min_yield: 5.0, score: 10}
+    - {min_yield: 4.0, score: 5}
+    - {min_yield: 0.0, score: 0}
 
 # --- 構造別法定耐用年数（PRD §5.2.7） ---
 structure_lifespan:

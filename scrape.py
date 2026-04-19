@@ -221,7 +221,7 @@ async def main() -> None:
 
     meta_out = result.meta.model_dump()
     meta_out["scoring"] = {
-        "modelVersion": "v2.5",
+        "modelVersion": "v2.6",
         "withAi": use_ai,
         "costJpy": ai_stats["cost_jpy"] if ai_stats else 0.0,
         "aiCallCount": ai_stats["ai_call_count"] if ai_stats else 0,
