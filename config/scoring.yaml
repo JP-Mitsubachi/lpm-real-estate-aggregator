@@ -1,0 +1,270 @@
+# L-008 AI掘り出し物スコアリング設定 v2.1 (PRD §5 v2.1)
+# Source: company/research/topics/2026-04-19-real-estate-scoring-research.md
+# Generated: 2026-04-19 (PGE Round 1)
+#
+# 値変更時は services/config_loader.py のバリデーションを必ず通す。
+# v2.0 は git に履歴が残っている。
+
+version: "2.1"
+
+# --- 5軸の配点（合計100必須） ---
+weights:
+  location: 30      # 立地スコア（エリア+駅徒歩+路線）
+  yield: 30         # 収益スコア（Cap Rateベンチマーク乖離）
+  loan: 20          # 融資適格性スコア（残存耐用年数）
+  stagnation: 10    # 滞留シグナル（v2.1は0固定。将来枠）
+  risk: 10          # リスク調整（再開発+ハザード）
+
+# --- ランク閾値（複合条件はscoring.pyで適用） ---
+thresholds:
+  rank_S: 80
+  rank_A: 65
+  rank_B: 50
+  rank_C: 35
+  # Sランク追加条件（複合ガード）
+  s_rank_min_location: 15      # 立地A以上(20点満点中15)
+  s_rank_min_loan: 10          # 融資10以上
+  s_rank_min_yield: 15         # 収益15以上
+  s_rank_min_remaining_years: 10  # 残存耐用年数10年以上
+  s_rank_max_price: 30000000      # v2.2: 3000万円超の物件はSランクから A 降格
+
+# --- 立地スコア配点 ---
+location_score:
+  area_points:
+    S: 20
+    A: 15
+    B: 10
+    C: 5
+    D: 0
+  walk_points:
+    within_10min: 10        # 徒歩1〜10分
+    within_15min: 5         # 徒歩11〜15分
+    over_15min: 0           # 徒歩16分以上
+    unparseable: 0          # パース不可
+  walk_thresholds:
+    full: 10
+    half: 15
+  line_bonus:
+    S: 3
+    A: 2
+    B: 1
+    C: 0
+  cap: 30  # location_score の上限
+
+# --- 福岡県内エリアランクマスター（10区分・PRD §5.2.4） ---
+area_rank:
+  "福岡市中央区": S
+  "福岡市博多区": S
+  "福岡市早良区": A
+  "福岡市南区": A
+  "福岡市西区": B
+  "福岡市城南区": B
+  "福岡市東区": B
+  # 北九州市は全区Cで代表（PRD §5.2.4）
+  "北九州市小倉北区": C
+  "北九州市小倉南区": C
+  "北九州市八幡西区": C
+  "北九州市八幡東区": C
+  "北九州市門司区": C
+  "北九州市戸畑区": C
+  "北九州市若松区": C
+  "久留米市": C
+  "筑後市": C
+  "大牟田市": C
+  # 福岡県内の上記以外（春日市・大野城市など近郊）はDへ。county_default で扱う
+  # 福岡県外も D
+default_area_rank: D
+
+# --- 路線ランクマスター（6路線・PRD §5.2.5） ---
+# 文字列マッチ用（部分一致）。半角ＪＲ・全角ＪＲ両対応
+route_rank:
+  S:
+    - "空港線"               # 福岡市地下鉄空港線
+  A:
+    - "鹿児島本線"           # JR鹿児島本線
+    - "天神大牟田線"         # 西鉄天神大牟田線
+  B:
+    - "七隈線"               # 福岡市地下鉄七隈線
+    - "箱崎線"               # 福岡市地下鉄箱崎線
+  C:
+    - "筑肥線"               # JR筑肥線
+
+# --- Cap Rate ベンチマーク（PRD §5.2.6） ---
+cap_rate_benchmark:
+  fukuoka_city_single: 5.25      # 福岡市内ワンルーム/単身向け（5.0-5.5%中央値）
+  fukuoka_city_family: 6.0       # 福岡市内ファミリー（5.5-6.5%中央値）
+  kitakyushu: 10.0               # 北九州市（8-12%中央値）
+  kurume: 10.0                   # 久留米市・筑後地区
+  default: 6.0                   # 不明時は福岡市ファミリー値で仮置き
+
+# layout を「単身向け」と「ファミリー」に分類するキーワード
+single_layout_keywords: ["1R", "1K", "1DK", "1LDK", "ワンルーム"]
+
+# --- 収益スコア配点 ---
+yield_score:
+  multiplier: 1.5            # +20%乖離 = 30点（×1.5）
+  cap: 30
+  benchmark_floor_score: 0   # ベンチマーク以下は0点
+
+# --- 構造別法定耐用年数（PRD §5.2.7） ---
+structure_lifespan:
+  RC: 47
+  SRC: 47
+  鉄骨S: 34
+  S造: 34
+  鉄骨: 34
+  軽量鉄骨: 22
+  木造: 22
+  default: 47   # 構造完全不明時の保守的デフォルト
+
+# 構造文字列の正規化マッピング（YAMLキーへ）
+structure_aliases:
+  "RC造": RC
+  "SRC造": SRC
+  "鉄筋コンクリート": RC
+  "鉄骨鉄筋コンクリート": SRC
+  "重量鉄骨": S造
+  "鉄骨造": S造
+
+# 構造欠損時の推定（propertyType + name から）
+structure_estimation:
+  rules:
+    - keywords_in_property_type: ["マンション", "ビル"]
+      assumed_structure: RC
+    - keywords_in_property_type: ["アパート"]
+      assumed_structure: S造
+    - keywords_in_property_type: ["戸建", "タウンハウス"]
+      assumed_structure: 木造
+    - keywords_in_property_type: ["土地"]
+      assumed_structure: null   # 土地は loanScore 中位点
+  default: RC                    # 上記いずれも該当しない場合の仮置き
+
+# --- 融資スコア配点 ---
+loan_score:
+  brackets:
+    - {min_remaining: 20, points: 20}      # 20年以上
+    - {min_remaining: 10, points: 15}      # 10〜19年
+    - {min_remaining: 5,  points: 10}      # 5〜9年
+    - {min_remaining: 1,  points: 5}       # 1〜4年
+    - {min_remaining: 0,  points: 0}       # 法定超え or 残り0
+  land_only_points: 10  # 土地のみの場合の中位点
+
+# --- 滞留スコア（v2.1は0固定） ---
+stagnation_score:
+  default: 0
+  enabled: false  # 将来 first_seen_at 取得後に true へ
+
+# --- リスク調整スコア（PRD §5.2.8） ---
+risk_score:
+  base_safety_points: 5         # ハザードなし時の基本点
+  redevelopment_bonus: 5        # 再開発圏内ボーナス
+  hazard_high_penalty: -5       # ハザード "high" 減点
+  cap_min: 0
+  cap_max: 10
+
+# --- 再開発エリアマスター（PRD §5.2.8 / 4プロジェクト） ---
+redevelopment_zones:
+  - name: "天神ビッグバン"
+    cities: ["福岡市中央区"]
+    station_keywords: ["天神", "赤坂", "西鉄福岡", "薬院"]
+  - name: "博多コネクティッド"
+    cities: ["福岡市博多区"]
+    station_keywords: ["博多", "祇園", "呉服町"]
+  - name: "千早再開発"
+    cities: ["福岡市東区"]
+    station_keywords: ["千早", "香椎"]
+  - name: "七隈線天神南延伸後"
+    cities: ["福岡市城南区", "福岡市南区"]
+    station_keywords: ["天神南", "桜坂", "薬院大通"]
+
+# --- ハザード要注意エリア（PRD §5.2.8 v2.3） ---
+# v2.3: city × 駅キーワード組合せで high を判定（過剰判定回避）
+# 福岡市総合ハザードマップ参照: 那珂川・御笠川・樋井川・室見川流域
+hazard_caution_zones:
+  high:
+    # 博多区南部 / 那珂川・御笠川流域（駅名は誤マッチしにくい固有名のみ）
+    - city: "福岡市博多区"
+      station_keywords: ["南福岡", "竹下", "笹原"]
+    # 早良区南部 / 樋井川流域（短すぎる「原」「賀茂」は除外）
+    - city: "福岡市早良区"
+      station_keywords: ["藤崎", "室見", "次郎丸"]
+    # 西区南部 / 樋井川下流
+    - city: "福岡市西区"
+      station_keywords: ["下山門"]
+    # 南区南部 / 那珂川下流（「大橋」は誤マッチ多発のため除外）
+    - city: "福岡市南区"
+      station_keywords: ["井尻", "雑餉隈", "春日原"]
+  medium:
+    - "福岡市博多区"     # 那珂川・御笠川流域全体
+    - "福岡市早良区"     # 樋井川流域全体
+  default: low
+
+# --- 中央値計算（v2.0継承・ベンチマークの補助役） ---
+median:
+  min_sample_size: 15
+  fallback_min: 5
+
+# --- N/A 判定の追加トリガ（PRD §5.2.10） ---
+na_rules:
+  require_city: true
+  require_prefecture: true
+  require_property_type: true
+  require_age_unless_land: true
+
+# --- v2.4: Claude Haiku 4.5 AI 根拠生成 (PRD §5.3.2 / §5.3.3) ---
+# 単価は Anthropic 公式 (claude-haiku-4-5-20251001) ベース。
+# 100万トークン単位、USDで指定。Prompt Caching の cache hit は input 単価の 10%、
+# cache write は input 単価の 1.25倍。これは公式の Haiku Tier 1 設定。
+ai_reasons:
+  model: "claude-haiku-4-5-20251001"
+  pricing:
+    input_per_mtok_usd: 1.0          # $1.00 / 1M input tokens
+    output_per_mtok_usd: 5.0         # $5.00 / 1M output tokens
+    cache_write_per_mtok_usd: 1.25   # 1.25x of input
+    cache_read_per_mtok_usd: 0.10    # 10% of input
+  tokens:
+    system_tokens: 600               # system prompt 想定（cache 対象）
+    user_tokens_per_property: 250    # 1物件あたりユーザープロンプト
+    output_tokens_per_property: 140  # 3行根拠（最大180字 + 改行）
+  budget:
+    monthly_jpy: 1000                # PRD §5.3.3 ハードリミット
+    usd_to_jpy: 150                  # cost_ledger と統一
+  estimation:
+    daily_property_count: 500        # PRD §5.3.3 想定
+    days_per_month: 30
+    diff_inheritance_rate: 0.70      # 差分継承率（前日継承で70%は API skip）
+  retries:
+    max_regen: 1                     # PRD AC-010-3 厳守
+  validation:
+    min_total_chars: 120             # PRD §5.3.2 (合計字数下限)
+    max_total_chars: 180             # PRD §5.3.2 (合計字数上限)
+    expected_lines: 3
+    forbidden_words:
+      - "買うべき"
+      - "おすすめ"
+      - "絶対"
+      - "必ず儲かる"
+      - "確実"
+      - "お得"
+      - "今が買い時"
+      - "推奨"
+      - "お買い得"
+    uncertain_words:
+      - "おそらく"
+      - "と思われる"
+      - "通常は"
+      - "一般的に"
+
+# --- v2.3: propertyType-aware S ランク閾値オーバーライド ---
+# 一棟物件は管理難度・スケールから区分よりも厳しいS基準を要求
+# 区分マンション・投資用マンションは default thresholds 継承
+property_type_modifiers:
+  "一棟売りマンション":
+    s_rank_min_yield: 18    # default 15 → +3
+    s_rank_min_loan: 15     # default 10 → +5
+  "一棟売りアパート":
+    s_rank_min_yield: 20    # default 15 → +5
+    s_rank_min_loan: 15     # default 10 → +5
+  "一棟ビル":
+    s_rank_min_yield: 18
+    s_rank_min_loan: 15

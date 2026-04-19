@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 .venv/
+# テスト用 cost ledger (dry-run) は除外、本番運用 ledger のみ追跡
+data/state/test/

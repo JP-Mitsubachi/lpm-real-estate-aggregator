@@ -20,6 +20,118 @@
   .drawer-handle { width: 40px; height: 4px; background: #d1d5db; border-radius: 2px; margin: 10px auto; }
   @media (min-width: 768px) { .drawer-overlay, .drawer-panel, .mobile-fab, .mobile-search-btn { display: none !important; } }
   @media (max-width: 767px) { .desktop-sidebar { display: none !important; } }
+
+  /* ===== M2: スコアリング可視化（プロ向けデザイン v2 — 不動産投資サイト基調） ===== */
+  /* ランクバッジ — フラット・ソリッドカラー、絵文字なし。WCAG AA 準拠 */
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 32px; height: 24px; padding: 0 8px;
+    border-radius: 3px;
+    font-weight: 700; font-size: 12px; line-height: 1;
+    letter-spacing: 0.05em; font-variant-numeric: tabular-nums;
+  }
+  .rank-S { background: #b45309; color: #ffffff; }                                /* 深いアンバー（金の代替） */
+  .rank-A { background: #475569; color: #ffffff; }                                /* スレートグレー（銀の代替） */
+  .rank-B { background: #1e40af; color: #ffffff; }                                /* 落ち着いた青 */
+  .rank-C { background: #6b7280; color: #ffffff; }                                /* グレー */
+  .rank-D { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }    /* 薄グレー */
+  .rank-NA { background: #ffffff; color: #6b7280; border: 1px solid #d1d5db; }   /* 判定不能 */
+
+  /* Sランク行: 左ボーダーで識別（影は控えめ・ビジネス志向） */
+  .s-rank-card { border-left: 3px solid #b45309 !important; }
+  .a-rank-card { border-left: 3px solid #475569 !important; }
+
+  /* locationGrade ミニバッジ — タグ風、彩度を落とす */
+  .loc-badge {
+    display: inline-flex; align-items: center;
+    padding: 1px 6px; border-radius: 2px;
+    font-size: 10px; font-weight: 600; line-height: 1.5;
+    border: 1px solid transparent;
+  }
+  .loc-S { background: #fef3c7; color: #78350f; border-color: #fde68a; }
+  .loc-A { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+  .loc-B { background: #eff6ff; color: #1e40af; border-color: #dbeafe; }
+  .loc-C { background: #f9fafb; color: #6b7280; border-color: #e5e7eb; }
+  .loc-D { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+
+  /* スコア内訳ツールチップ（hover/click 両対応） */
+  .score-breakdown { position: relative; }
+  .score-breakdown-trigger { cursor: help; user-select: none; }
+  .score-tooltip {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #111827; color: #fff; font-size: 11px; line-height: 1.5;
+    padding: 8px 10px; border-radius: 6px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    z-index: 30; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .score-tooltip::after {
+    content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px;
+    border: 5px solid transparent; border-top-color: #111827;
+  }
+  .score-breakdown:hover .score-tooltip,
+  .score-breakdown.is-open .score-tooltip { opacity: 1; pointer-events: auto; }
+
+  /* dealReasons 3行 — 落ち着いた書類風 */
+  .deal-reasons {
+    font-size: 11.5px; line-height: 1.65; color: #374151;
+    background: #fafafa; border-left: 2px solid #9ca3af;
+    padding: 8px 10px; margin-top: 10px;
+    border-radius: 0 2px 2px 0;
+  }
+  .deal-reasons li { display: flex; gap: 6px; padding: 1px 0; }
+  .deal-reasons li::before { content: '—'; color: #9ca3af; flex-shrink: 0; font-weight: 400; }
+  .deal-reasons-fallback { color: #6b7280; font-size: 10px; margin-top: 4px; }
+
+  /* データ鮮度（ヘッダー表示） */
+  .freshness-fresh { color: #475569; font-variant-numeric: tabular-nums; }
+  .freshness-stale { color: #b45309; background: #fef3c7; padding: 1px 6px; border-radius: 2px; font-variant-numeric: tabular-nums; }
+
+  /* ハザード表示 — テキストバッジ（絵文字なし） */
+  .hazard-badge {
+    display: inline-flex; align-items: center;
+    padding: 1px 5px; border-radius: 2px;
+    font-size: 10px; font-weight: 600; line-height: 1.5;
+    border: 1px solid transparent;
+  }
+  .hazard-high { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .hazard-medium { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+
+  /* ランクフィルタの色付きラベル */
+  .rank-filter-label { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; user-select: none; min-height: 32px; }
+  .rank-filter-label:hover { background: #f3f4f6; }
+
+  /* 構造推定マーク */
+  .struct-est { font-size: 10px; color: #9ca3af; }
+
+  /* M2 Loop2: 再開発エリアマーク（テキストバッジ・絵文字なし） */
+  .redev-badge {
+    display: inline-flex; align-items: center;
+    padding: 1px 5px; border-radius: 2px;
+    font-size: 10px; font-weight: 600; line-height: 1.5;
+    background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;
+  }
+
+  /* M2 Loop2: 利回り中央値比 */
+  .yield-dev {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 600;
+    padding: 1px 5px; border-radius: 2px;
+    line-height: 1.5; cursor: help;
+    font-variant-numeric: tabular-nums;
+  }
+  .yield-dev-pos { background: #ecfdf5; color: #065f46; }
+  .yield-dev-neg { background: #fef2f2; color: #991b1b; }
+
+  /* タップ領域確保（モバイル44px） */
+  @media (max-width: 767px) {
+    .rank-filter-label { min-height: 44px; padding: 8px 10px; }
+    .score-breakdown-trigger { min-height: 32px; min-width: 60px; }
+  }
+
+  /* レスポンシブ（既存 lg/xl breakpoint を補強し、md でも2カラム保証） */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    #cardGrid, #welcomeFavGrid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  }
 </style>
 <script>
 tailwind.config = {
@@ -47,6 +159,11 @@ tailwind.config = {
         <h1 class="text-sm md:text-lg font-bold text-gray-800 leading-tight truncate">物件アグリゲーター</h1>
         <p class="text-[10px] md:text-xs text-gray-400 leading-tight hidden md:block">HOME'S・SUUMO・ふれんず 横断検索</p>
       </div>
+      <!-- M2: データ鮮度（v2.x / 経過時間） -->
+      <div id="dataFreshness" class="hidden md:flex items-center gap-1.5 text-[11px] text-gray-500 ml-3 pl-3 border-l border-gray-200">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span id="dataFreshnessText" class="font-medium freshness-fresh">スコア未読込</span>
+      </div>
     </div>
     <button id="favHeaderBtn" onclick="toggleFavFilter()" class="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-colors text-xs md:text-sm flex-shrink-0">
       <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -66,6 +183,19 @@ tailwind.config = {
     </h2>
 
     <!-- === 常時表示: 5項目 === -->
+
+    <!-- M2: ランクフィルタ（主動線・最上部） -->
+    <div class="mb-4 pb-4 border-b border-gray-100">
+      <label class="block text-xs font-semibold text-gray-600 mb-2">投資ランク</label>
+      <div class="flex flex-wrap gap-1.5" id="rankChecks">
+        <label class="rank-filter-label"><input type="checkbox" value="S" checked class="rounded text-primary"> <span class="rank-badge rank-S" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">S</span></label>
+        <label class="rank-filter-label"><input type="checkbox" value="A" checked class="rounded text-primary"> <span class="rank-badge rank-A" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">A</span></label>
+        <label class="rank-filter-label"><input type="checkbox" value="B" checked class="rounded text-primary"> <span class="rank-badge rank-B" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">B</span></label>
+        <label class="rank-filter-label"><input type="checkbox" value="C" class="rounded text-primary"> <span class="rank-badge rank-C" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">C</span></label>
+        <label class="rank-filter-label"><input type="checkbox" value="D" class="rounded text-primary"> <span class="rank-badge rank-D" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">D</span></label>
+        <label class="rank-filter-label"><input type="checkbox" value="N/A" class="rounded text-primary"> <span class="rank-badge rank-NA" style="min-width:32px;height:18px;font-size:10px;padding:0 5px">N/A</span></label>
+      </div>
+    </div>
 
     <!-- 1. Area -->
     <div class="mb-4">
@@ -301,6 +431,7 @@ tailwind.config = {
         <div class="flex items-center gap-2">
           <label class="text-xs text-gray-500 hidden md:inline">並び替え:</label>
           <select id="sortSelect" onchange="applyFiltersAndSort()" class="border border-gray-300 rounded-md px-2 md:px-3 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-primary focus:border-primary flex-1 sm:flex-none">
+            <option value="dealDesc" selected>掘り出し物順（おすすめ）</option>
             <option value="yieldDesc">利回り（高い順）</option>
             <option value="yieldAsc">利回り（低い順）</option>
             <option value="priceAsc">価格（安い順）</option>
@@ -350,6 +481,18 @@ tailwind.config = {
 
     <!-- Mobile filter form (mirrors sidebar) -->
     <div class="space-y-4">
+      <!-- M2: ランクフィルタ（モバイル） -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-2">投資ランク</label>
+        <div class="flex flex-wrap gap-2" id="mRankChecks">
+          <label class="rank-filter-label"><input type="checkbox" value="S" checked class="rounded text-primary"> <span class="rank-badge rank-S" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">S</span></label>
+          <label class="rank-filter-label"><input type="checkbox" value="A" checked class="rounded text-primary"> <span class="rank-badge rank-A" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">A</span></label>
+          <label class="rank-filter-label"><input type="checkbox" value="B" checked class="rounded text-primary"> <span class="rank-badge rank-B" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">B</span></label>
+          <label class="rank-filter-label"><input type="checkbox" value="C" class="rounded text-primary"> <span class="rank-badge rank-C" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">C</span></label>
+          <label class="rank-filter-label"><input type="checkbox" value="D" class="rounded text-primary"> <span class="rank-badge rank-D" style="min-width:22px;height:18px;font-size:10px;padding:0 5px">D</span></label>
+          <label class="rank-filter-label"><input type="checkbox" value="N/A" class="rounded text-primary"> <span class="rank-badge rank-NA" style="min-width:32px;height:18px;font-size:10px;padding:0 5px">N/A</span></label>
+        </div>
+      </div>
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">エリア</label>
         <select id="mFilterArea" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm">
@@ -538,6 +681,9 @@ let dataLoadPromise = null;
 let dataLoadedAt = null;
 let dataDiff = null;
 
+// M2: スコアリングメタ
+let scoringMeta = null;
+
 async function loadStaticData() {
   if (dataLoadPromise) return dataLoadPromise;
   dataLoadPromise = (async () => {
@@ -546,9 +692,38 @@ async function loadStaticData() {
     const data = await res.json();
     dataLoadedAt = data.generatedAt;
     dataDiff = data.diff || null;
+    scoringMeta = (data.meta && data.meta.scoring) || null;
+    updateFreshness();
     return data;
   })();
   return dataLoadPromise;
+}
+
+// M2: ヘッダーのデータ鮮度表示（v2.x / X時間前更新、24h超で警告色）
+function updateFreshness() {
+  const el = document.getElementById('dataFreshnessText');
+  const wrap = document.getElementById('dataFreshness');
+  if (!el || !wrap) return;
+  if (!scoringMeta || !scoringMeta.scoredAt) {
+    el.textContent = 'スコア未読込';
+    el.className = 'font-medium freshness-fresh';
+    return;
+  }
+  const ver = scoringMeta.modelVersion || 'v?';
+  // scoredAt は "YYYY-MM-DD" or ISO のいずれか
+  const scoredAtRaw = scoringMeta.scoredAt;
+  const scoredDate = scoredAtRaw.length <= 10 ? new Date(scoredAtRaw + 'T00:00:00') : new Date(scoredAtRaw);
+  const now = new Date();
+  const diffMs = now - scoredDate;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  let elapsed;
+  if (diffHours < 1) elapsed = '1時間以内';
+  else if (diffHours < 24) elapsed = Math.floor(diffHours) + '時間前';
+  else elapsed = Math.floor(diffHours / 24) + '日前';
+  el.textContent = `${ver} / ${elapsed}更新`;
+  el.className = diffHours > 24 ? 'font-medium freshness-stale' : 'font-medium freshness-fresh';
+  wrap.classList.remove('hidden');
+  wrap.classList.add('flex');
 }
 
 // ---- Search (loads from static JSON) ----
@@ -653,6 +828,7 @@ function applyFiltersAndSort() {
   const ageMax = document.getElementById('filterAge').value ? parseInt(document.getElementById('filterAge').value) : Infinity;
   const types = getCheckedValues('typeChecks');
   const structures = getCheckedValues('structureChecks');
+  const ranks = getCheckedValues('rankChecks');  // M2: ランクフィルタ
   const favOnly = document.getElementById('favOnly').checked;
   const excludeNoYield = document.getElementById('excludeNoYield').checked;
 
@@ -710,11 +886,30 @@ function applyFiltersAndSort() {
       const isUnknownType = !knownValues.includes(p.propertyType);
       if (!matchesExpanded && !isUnknownType) return false;
     }
+    // M2: ランクフィルタ（チェック0件＝全件表示で互換維持）
+    if (ranks.length > 0) {
+      const r = p.dealRank || 'N/A';
+      if (!ranks.includes(r)) return false;
+    }
     return true;
   });
 
   // Sort
   const sort = document.getElementById('sortSelect').value;
+  if (sort === 'dealDesc') {
+    // M2 Loop2: 階層 sort — rank → score → yield → price（C2 Sランク Top10 保証）
+    const RANK_ORDER = { S: 4, A: 3, B: 2, C: 1, D: 0, "N/A": -1 };
+    filtered.sort((a, b) => {
+      const ra = RANK_ORDER[a.dealRank] ?? -2;
+      const rb = RANK_ORDER[b.dealRank] ?? -2;
+      if (ra !== rb) return rb - ra;                                    // 1. ランク階層 DESC
+      if ((b.dealScore || 0) !== (a.dealScore || 0))
+        return (b.dealScore || 0) - (a.dealScore || 0);                 // 2. スコア DESC
+      if ((b.yieldGross || 0) !== (a.yieldGross || 0))
+        return (b.yieldGross || 0) - (a.yieldGross || 0);               // 3. 利回り DESC
+      return (a.price || Infinity) - (b.price || Infinity);             // 4. 価格 ASC
+    });
+  } else {
   filtered.sort((a, b) => {
     switch(sort) {
       case 'priceAsc': return a.price - b.price;
@@ -728,6 +923,7 @@ function applyFiltersAndSort() {
     }
     return 0;
   });
+  }
 
   displayedProperties = filtered;
   renderCards();
@@ -740,6 +936,79 @@ function extractWalkMinutes(station) {
   return m ? parseInt(m[1]) : null;
 }
 
+// M2: ランク表示のヘルパー（絵文字なしのプロ向けデザイン）
+function rankBadgeHTML(rank) {
+  const r = rank || 'N/A';
+  const cls = r === 'N/A' ? 'rank-NA' : 'rank-' + r;
+  return `<span class="rank-badge ${cls}" title="投資ランク ${r}">${r}</span>`;
+}
+
+function locationBadgeHTML(grade) {
+  if (!grade) return '';
+  return `<span class="loc-badge loc-${grade}" title="立地グレード ${grade}">立地 ${grade}</span>`;
+}
+
+// M2 Loop2: 再開発エリアマーク（テキストバッジで控えめに）
+function redevelopmentMarkHTML(flag) {
+  if (!flag) return '';
+  return `<span class="redev-badge" title="再開発エリア（将来的な賃料・地価上昇余地）">再開発</span>`;
+}
+
+// M2 Loop2: 利回り中央値比（yieldDeviation は既に %表記）
+function yieldDeviationHTML(p) {
+  let pct = null;
+  if (p.yieldDeviation != null && isFinite(p.yieldDeviation)) {
+    // backend から %表記で来る (例: -42.58 = -42.58%)
+    pct = Math.round(p.yieldDeviation);
+  } else if (p.yieldGross && p.yieldMedianInArea) {
+    // フォールバック: 動的計算（fraction → ×100 で %化）
+    const dev = (p.yieldGross - p.yieldMedianInArea) / p.yieldMedianInArea;
+    pct = Math.round(dev * 100);
+  }
+  if (pct == null || pct === 0) return '';
+  const cls = pct > 0 ? 'yield-dev-pos' : 'yield-dev-neg';
+  const sign = pct > 0 ? '+' : '';
+  return `<span class="yield-dev ${cls}" title="エリア中央値比 ${sign}${pct}%">中央値比 ${sign}${pct}%</span>`;
+}
+
+function hazardIconHTML(flag) {
+  if (flag === 'high') return `<span class="hazard-badge hazard-high" title="ハザードリスク高（要確認）">浸水想定</span>`;
+  if (flag === 'medium') return `<span class="hazard-badge hazard-medium" title="ハザードリスク中">流域</span>`;
+  return '';
+}
+
+function scoreBreakdownHTML(p) {
+  const loc = p.locationScore != null ? p.locationScore : '-';
+  const yld = p.yieldBenchmarkScore != null ? p.yieldBenchmarkScore : '-';
+  const loan = p.loanScore != null ? p.loanScore : '-';
+  const risk = p.riskScore != null ? p.riskScore : '-';
+  const total = p.dealScore != null ? p.dealScore : '-';
+  return `
+    <span class="score-breakdown" onclick="event.preventDefault();event.stopPropagation();this.classList.toggle('is-open')">
+      <span class="score-breakdown-trigger inline-flex items-baseline gap-1 text-[11px] text-gray-500 hover:text-gray-700">
+        <span class="text-[10px] tracking-wide">SCORE</span><span class="font-semibold text-gray-700 text-[12px] tabular-nums">${total}</span>
+      </span>
+      <span class="score-tooltip">
+        <strong>スコア内訳</strong><br>
+        立地 ${loc}/30 ・ 収益 ${yld}/30<br>
+        融資 ${loan}/20 ・ リスク ${risk}/10<br>
+        <strong>合計 ${total}/100</strong>
+      </span>
+    </span>`;
+}
+
+function dealReasonsHTML(p) {
+  const reasons = (p.dealReasons || []).slice(0, 3);
+  if (reasons.length === 0) return '';
+  const items = reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('');
+  const fb = p.isAutoFallback ? `<div class="deal-reasons-fallback">（自動生成）</div>` : '';
+  return `<ul class="deal-reasons">${items}</ul>${fb}`;
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function buildCardHTML(p, options) {
   const isFav = isFavorite(p.id);
   const isDup = p.duplicateFlag;
@@ -747,34 +1016,62 @@ function buildCardHTML(p, options) {
   const sourceColor = SOURCE_COLORS[p.sourceName] || 'bg-gray-500';
   const walkMin = extractWalkMinutes(p.nearestStation);
 
-  // ボーダー色: 重複 > 利回りなし > 通常
+  // ボーダー色: Sランク > Aランク > 重複 > 利回りなし > 通常
   let borderClass = '';
-  if (isDup) borderClass = 'duplicate-border';
+  if (p.dealRank === 'S') borderClass = 's-rank-card';
+  else if (p.dealRank === 'A') borderClass = 'a-rank-card';
+  else if (isDup) borderClass = 'duplicate-border';
   else if (!hasYield) borderClass = 'no-yield-border';
+
+  // SHOULD: 残存耐用年数
+  const remYears = p.remainingDurableYears;
+  const remText = remYears != null
+    ? (remYears < 0 ? `<span class="text-red-600">耐用超${Math.abs(remYears)}年</span>` : `残${remYears}年`)
+    : '';
+
+  // SHOULD: 構造推定マーク
+  const structEst = p.structureEstimated ? `<span class="struct-est" title="構造はpropertyTypeから推定">推定</span>` : '';
 
   return `
   <a href="${p.sourceUrl}" target="_blank" rel="noopener" class="block bg-white rounded-lg border border-gray-200 overflow-hidden card-hover transition-card relative ${borderClass}">
     ${p.isNew ? '<span class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded z-10">NEW</span>' : isDup ? '<span class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded z-10">重複候補</span>' : ''}
-    <button onclick="event.preventDefault();event.stopPropagation();toggleFav('${p.id}')" class="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full ${isFav ? 'bg-yellow-100' : 'bg-white/80 hover:bg-gray-100'} transition-colors" title="お気に入り">
+    <button onclick="event.preventDefault();event.stopPropagation();toggleFav('${p.id}')" class="absolute top-1.5 right-1.5 z-10 w-11 h-11 flex items-center justify-center rounded-full ${isFav ? 'bg-yellow-100' : 'bg-white/80 hover:bg-gray-100'} transition-colors" title="お気に入り" aria-label="お気に入りに追加">
       <svg class="w-5 h-5 ${isFav ? 'text-yellow-500' : 'text-gray-400'}" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
     </button>
     <div class="p-3">
-      <!-- 第1層: ソース + 物件名 / 価格 + 利回り / エリア -->
-      <div class="flex items-start gap-2 mb-1">
-        <span class="${sourceColor} text-white text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0">${p.sourceName}</span>
-        <h3 class="text-sm font-semibold text-gray-800 truncate">${p.name}</h3>
+      <!-- レイヤー1: ランクバッジ + ソース + 物件名 + ハザード -->
+      <div class="flex items-center gap-1.5 mb-2 pr-12">
+        ${rankBadgeHTML(p.dealRank)}
+        <span class="${sourceColor} text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0">${p.sourceName}</span>
+        ${hazardIconHTML(p.hazardFlag)}
       </div>
-      <div class="flex items-baseline gap-3 mb-0.5">
+      <h3 class="text-sm font-semibold text-gray-800 truncate mb-1">${escapeHtml(p.name)}</h3>
+      <div class="flex items-baseline gap-3 mb-0.5 flex-wrap">
         <p class="text-xl font-bold text-gray-900" style="font-size:20px">${p.priceText}</p>
-        <p class="text-base font-bold ${hasYield && p.yieldGross >= 8 ? 'text-red-600' : hasYield ? 'text-orange-500' : 'text-gray-400'}" style="font-size:16px">
+        <p class="text-base font-bold ${hasYield && p.yieldGross >= 10 ? 'text-amber-700' : hasYield && p.yieldGross >= 7 ? 'text-amber-600' : hasYield ? 'text-gray-700' : 'text-gray-400'}" style="font-size:16px;font-variant-numeric:tabular-nums">
           ${hasYield ? p.yieldGross.toFixed(1) + '%' : '利回りなし'}
         </p>
+        ${yieldDeviationHTML(p)}
+        ${scoreBreakdownHTML(p)}
       </div>
-      <p class="text-xs text-gray-500 mb-2">${(p.address || '').replace('福岡県','')}</p>
-      <!-- 第2層: 間取り + 面積 + 駅徒歩 -->
-      <p class="text-xs text-gray-600 mb-1">${p.layout || '-'} / ${p.area ? p.area + 'm\u00B2' : '-'} / ${walkMin !== null ? '駅徒歩' + walkMin + '分' : p.nearestStation || '-'}</p>
-      <!-- 第3層: 築年数・構造・物件種別 -->
-      <p class="text-[11px] text-gray-400">築${p.age != null ? p.age + '年' : '-'} / ${p.structure || '-'} / ${p.propertyType || '-'}</p>
+      <p class="text-xs text-gray-500 mb-2 flex items-center gap-1.5 flex-wrap">
+        <span>${escapeHtml((p.address || '').replace('福岡県',''))}</span>
+        ${locationBadgeHTML(p.locationGrade)}
+        ${redevelopmentMarkHTML(p.inRedevelopmentZone)}
+      </p>
+      <!-- レイヤー2: 補助メタ -->
+      <p class="text-xs text-gray-600 mb-1">${p.layout || '-'} / ${p.area ? p.area + 'm\u00B2' : '-'} / ${walkMin !== null ? '駅徒歩' + walkMin + '分' : escapeHtml(p.nearestStation || '-')}</p>
+      <p class="text-[11px] text-gray-400 flex items-center gap-1.5 flex-wrap">
+        <span>築${p.age != null ? p.age + '年' : '-'}</span>
+        ${remText ? `<span>・</span><span>${remText}</span>` : ''}
+        <span>・</span>
+        <span>${escapeHtml(p.structure || '-')}</span>
+        ${structEst}
+        <span>・</span>
+        <span>${escapeHtml(p.propertyType || '-')}</span>
+      </p>
+      <!-- レイヤー3: 根拠開示 -->
+      ${dealReasonsHTML(p)}
     </div>
   </a>`;
 }
@@ -825,8 +1122,17 @@ function renderWelcomeFavorites() {
   document.getElementById(id).addEventListener('change', applyFiltersAndSort);
   document.getElementById(id).addEventListener('input', applyFiltersAndSort);
 });
-document.querySelectorAll('#layoutChecks input, #typeChecks input, #structureChecks input').forEach(cb => {
+document.querySelectorAll('#layoutChecks input, #typeChecks input, #structureChecks input, #rankChecks input').forEach(cb => {
   cb.addEventListener('change', applyFiltersAndSort);
+});
+// M2: モバイルランクフィルタ → デスクトップへ即同期
+document.querySelectorAll('#mRankChecks input').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const mChecks = document.querySelectorAll('#mRankChecks input[type=checkbox]');
+    const dChecks = document.querySelectorAll('#rankChecks input[type=checkbox]');
+    mChecks.forEach((mc, i) => { if (dChecks[i]) dChecks[i].checked = mc.checked; });
+    applyFiltersAndSort();
+  });
 });
 
 // ---- Mobile Drawer ----

@@ -48,11 +48,14 @@ jobs:
       - name: Run scraper
         env:
           CITY_FILTER: ${{ github.event.inputs.city }}
+          # v2.4: AI 根拠生成（Claude Haiku 4.5）。secret 未設定なら scrape.py 側で自動 fallback
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: claude-haiku-4-5-20251001
         run: |
           if [ -n "$CITY_FILTER" ]; then
-            python scrape.py --city "$CITY_FILTER"
+            python scrape.py --city "$CITY_FILTER" --with-ai
           else
-            python scrape.py
+            python scrape.py --with-ai
           fi
 
       - name: Commit and push data
