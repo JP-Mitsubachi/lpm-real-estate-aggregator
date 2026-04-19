@@ -889,6 +889,70 @@ def test_yieldMedianInArea_falls_back_to_benchmark_when_population_missing():
     assert target.yieldDeviation < 0  # 8.0 < 10.0
 
 
+# ===== v2.5 B案: yieldEstimated 対応 =======================================
+
+def test_calc_yield_score_uses_estimated_when_actual_missing():
+    """yieldGross=None でも yieldEstimated があればその値で score を計算する."""
+    p = Property(
+        id="x", name="n",
+        city="福岡市博多区", layout="2LDK",
+        yieldGross=None,
+    )
+    # ベンチマーク 6.0 に対し 7.2 → +20% 乖離 → 通常上限 30 だが estimated で 15 にクリップ
+    p.yieldEstimated = 7.2
+    p.yieldSourceConfidence = "median"
+    score = calc_yield_benchmark_score(p)
+    assert score is not None
+    # estimated の最大 = cap/2 = 15
+    assert score == 15
+
+
+def test_calc_yield_score_clips_to_half_for_estimated():
+    """estimated 扱いでは cap 30 → 15 にクリップされ、actual との差分が保たれる."""
+    # 同じ利回り値でも actual と estimated で点数が異なることを確認
+    p_actual = Property(
+        id="x1", name="n",
+        city="福岡市博多区", layout="2LDK",
+        yieldGross=20.0,  # 爆発的な高利回り → actual なら 30点満点
+    )
+    score_actual = calc_yield_benchmark_score(p_actual)
+    assert score_actual == 30
+
+    p_est = Property(
+        id="x2", name="n",
+        city="福岡市博多区", layout="2LDK",
+        yieldGross=None,
+    )
+    p_est.yieldEstimated = 20.0
+    p_est.yieldSourceConfidence = "median"
+    score_est = calc_yield_benchmark_score(p_est)
+    # estimated は半分にクリップ
+    assert score_est == 15
+
+
+def test_calc_yield_score_estimated_fallback_confidence_also_clipped():
+    """信頼度 'fallback' でも同様に半分クリップ."""
+    p = Property(
+        id="x", name="n",
+        city="福岡市博多区", layout="2LDK",
+        yieldGross=None,
+    )
+    p.yieldEstimated = 7.2
+    p.yieldSourceConfidence = "fallback"
+    score = calc_yield_benchmark_score(p)
+    assert score == 15
+
+
+def test_calc_yield_score_still_none_when_both_missing():
+    """yieldGross / yieldEstimated 両方 None なら従来どおり None."""
+    p = Property(
+        id="x", name="n",
+        city="福岡市博多区", layout="2LDK",
+        yieldGross=None,
+    )
+    assert calc_yield_benchmark_score(p) is None
+
+
 def test_yieldDeviation_negative_when_below_median():
     """yieldGross が中央値を下回るとき yieldDeviation < 0."""
     from services.medians import compute_medians

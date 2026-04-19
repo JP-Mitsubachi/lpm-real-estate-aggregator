@@ -61,18 +61,39 @@ def get_benchmark_cap_rate(p: Property) -> float:
 # ===== 収益スコア (yieldBenchmarkScore) =====================================
 
 def calc_yield_benchmark_score(p: Property) -> Optional[int]:
-    """0-30 点。+20%乖離で30点。yieldGross None → None。"""
-    if p.yieldGross is None:
+    """0-30 点。+20%乖離で30点。
+
+    v2.5 B案:
+        yieldGross が None でも `yieldEstimated` (+ yieldSourceConfidence) があれば
+        それを利用する。ただし estimated の場合（actual 以外）は最大点を半分に
+        クリップする（30 → 15）ため、掲載値のある物件が有利に維持される。
+        どちらも None なら従来どおり None を返す。
+    """
+    # 利用する利回り値と「actual かどうか」を決定
+    yld: Optional[float] = None
+    is_actual = False
+    if p.yieldGross is not None:
+        yld = p.yieldGross
+        is_actual = True
+    elif p.yieldEstimated is not None:
+        yld = p.yieldEstimated
+        is_actual = (p.yieldSourceConfidence == "actual")
+
+    if yld is None:
         return None
+
     cfg = get_default_config()
     bench = get_benchmark_cap_rate(p)
     if bench <= 0:
         return None
     cap = int(cfg["yield_score"]["cap"])
     multiplier = float(cfg["yield_score"]["multiplier"])
-    deviation_pct = (p.yieldGross - bench) / bench * 100
+    deviation_pct = (yld - bench) / bench * 100
     raw = deviation_pct * multiplier
-    return int(min(cap, max(0, raw)))
+
+    # estimated の場合は最大点を半分にクリップ（過剰評価防止）
+    effective_cap = cap if is_actual else cap // 2
+    return int(min(effective_cap, max(0, raw)))
 
 
 # ===== 構造推定 + 残存耐用年数 ===============================================

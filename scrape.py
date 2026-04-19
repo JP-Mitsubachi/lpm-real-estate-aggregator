@@ -21,7 +21,9 @@ from typing import Optional
 from models import Property, SearchQuery
 from services.medians import compute_medians
 from services.orchestrator import run_search
+from services.persona_matcher import match_personas
 from services.scoring import score_property
+from services.yield_estimator import estimate_yield_for_property
 
 # v2.5: priceHistory の最大保持件数
 PRICE_HISTORY_MAX_ENTRIES = 10
@@ -159,9 +161,26 @@ async def main() -> None:
     # v2.5: 母集団中央値を先に計算（スコアリングで書き戻すため）
     medians = compute_medians(result.properties)
 
+    # v2.5 B案: SUUMO/ふれんず等 yieldGross 未掲載物件の利回りを推計
+    # compute_medians の結果を使い、score_property の前に書き戻す。
+    # （scoring.py 側は yieldGross が無ければ yieldEstimated を使うよう拡張済み）
+    for p in result.properties:
+        est, conf = estimate_yield_for_property(p, medians)
+        p.yieldEstimated = est
+        p.yieldSourceConfidence = conf
+
     # スコアリング (v2.5) を全件に適用
     for p in result.properties:
         score_property(p, medians=medians)
+
+    # v2.6: 投資家ペルソナマッチング（5ペルソナ）
+    # score_property の後で実行 — pricePerSqmMedian / yieldMedianInArea /
+    # locationGrade / lineRank / walkMinutes / inRedevelopmentZone /
+    # remainingDurableYears / yieldDeviation などを参照するため。
+    for p in result.properties:
+        matches, stars = match_personas(p)
+        p.personaMatches = matches
+        p.personaStars = stars
 
     # 前日 properties を読み込み (差分検出 / AI 上書き / 履歴継承で使う)
     out_path = Path(args.output)

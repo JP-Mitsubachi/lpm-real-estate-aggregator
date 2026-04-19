@@ -94,6 +94,19 @@ class Property(BaseModel):
     # priceHistory: 価格変更履歴（最大10件、{"date": "YYYY-MM-DD", "price": int}）
     priceHistory: list[dict] = Field(default_factory=list)
 
+    # v2.5 B案: 利回り推計（SUUMO/ふれんずの掲載ゼロ問題を補う）
+    # yieldEstimated: 推計利回り（actual の場合は yieldGross と同値）
+    yieldEstimated: Optional[float] = None
+    # yieldSourceConfidence: "actual" / "median" / "fallback" / "none"
+    yieldSourceConfidence: Optional[str] = None
+
+    # v2.6: 投資家ペルソナ × 物件マッチング
+    # personaMatches: MUST 全クリアしたペルソナID のリスト
+    #   "income" / "loan_strategy" / "capital_gain" / "location" / "renovation"
+    personaMatches: list[str] = Field(default_factory=list)
+    # personaStars: ペルソナID → 1〜5 (MUST=3 から PREFER 加点 / estimated 補正)
+    personaStars: dict[str, int] = Field(default_factory=dict)
+
     @field_validator("price")
     @classmethod
     def validate_investment_price(cls, v: Optional[int]) -> Optional[int]:

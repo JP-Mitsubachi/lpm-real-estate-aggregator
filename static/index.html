@@ -103,6 +103,15 @@
   /* 構造推定マーク */
   .struct-est { font-size: 10px; color: #9ca3af; }
 
+  /* 利回り推定マーク（v2.5 B案: SUUMO/ふれんず等） */
+  .yield-est {
+    display: inline-flex; align-items: center;
+    font-size: 10px; color: #9ca3af;
+    padding: 0 4px; border: 1px solid #e5e7eb; border-radius: 3px;
+    margin-left: 4px; vertical-align: middle;
+    line-height: 14px; font-weight: 600;
+  }
+
   /* M2 Loop2: 再開発エリアマーク（テキストバッジ・絵文字なし） */
   .redev-badge {
     display: inline-flex; align-items: center;
@@ -131,6 +140,51 @@
   /* レスポンシブ（既存 lg/xl breakpoint を補強し、md でも2カラム保証） */
   @media (min-width: 640px) and (max-width: 1023px) {
     #cardGrid, #welcomeFavGrid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  }
+
+  /* v2.6: 投資スタイル（ペルソナ）セレクタ */
+  .persona-btn {
+    transition: all 0.15s ease;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+  .persona-btn-active {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+  }
+  @media (max-width: 767px) {
+    .persona-btn { min-height: 40px; padding: 8px 12px; }
+  }
+
+  /* v2.6: 複数ペルソナマッチバッジ（プレミアム） */
+  .persona-multi-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 6px; border-radius: 10px;
+    font-size: 10px; font-weight: 700; line-height: 1.5;
+    background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* v2.6: 個別ペルソナ★表示 */
+  .persona-stars-list {
+    font-size: 11px; line-height: 1.6; color: #374151;
+    margin-top: 8px; padding: 6px 8px;
+    background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 4px;
+  }
+  .persona-stars-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1px 0;
+  }
+  .persona-stars-row .pers-label { color: #475569; font-weight: 500; }
+  .persona-stars-row .pers-stars {
+    color: #b45309; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+  }
+  .persona-stars-row .pers-stars.pers-current {
+    background: #fef3c7; padding: 0 5px; border-radius: 2px;
   }
 </style>
 <script>
@@ -419,6 +473,24 @@ tailwind.config = {
 
     <!-- Results state -->
     <div id="resultsState" class="hidden">
+      <!-- v2.6: 投資スタイルセレクタ（5ペルソナ + すべて） -->
+      <div class="mb-3 bg-white border border-gray-200 rounded-lg px-3 md:px-4 py-2 md:py-2.5">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <label class="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            投資スタイル
+          </label>
+          <span id="personaHint" class="text-[11px] text-gray-400 hidden md:inline">ペルソナを選ぶと MUST/PREFER を満たす物件だけに絞り、★順で並び替えます</span>
+        </div>
+        <div id="personaSelector" class="flex flex-wrap gap-1.5">
+          <button type="button" data-persona="" class="persona-btn persona-btn-active px-3 py-1.5 rounded-full text-xs font-semibold border bg-primary text-white border-primary">すべて</button>
+          <button type="button" data-persona="income" class="persona-btn px-3 py-1.5 rounded-full text-xs font-semibold border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">🏦 インカム型</button>
+          <button type="button" data-persona="loan_strategy" class="persona-btn px-3 py-1.5 rounded-full text-xs font-semibold border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">💰 融資戦略型</button>
+          <button type="button" data-persona="capital_gain" class="persona-btn px-3 py-1.5 rounded-full text-xs font-semibold border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">📈 キャピタル型</button>
+          <button type="button" data-persona="location" class="persona-btn px-3 py-1.5 rounded-full text-xs font-semibold border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">🏙️ 立地特化型</button>
+          <button type="button" data-persona="renovation" class="persona-btn px-3 py-1.5 rounded-full text-xs font-semibold border bg-white text-gray-700 border-gray-300 hover:bg-gray-50">🔨 築古再生型</button>
+        </div>
+      </div>
       <!-- Toolbar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 md:mb-4 bg-white border border-gray-200 rounded-lg px-3 md:px-4 py-2 md:py-2.5 gap-2">
         <div>
@@ -674,6 +746,20 @@ let allProperties = [];
 let displayedProperties = [];
 let hasSearched = false;
 
+// v2.6: 投資スタイル（ペルソナ）選択 state
+// "" = 未選択（すべて / v2.5 dealRank 順）
+// "income" / "loan_strategy" / "capital_gain" / "location" / "renovation"
+let selectedPersona = "";
+
+// v2.6: ペルソナID → 表示ラベル（カード詳細用）
+const PERSONA_LABELS = {
+  income:        { short: "インカム型",   icon: "🏦" },
+  loan_strategy: { short: "融資戦略型",   icon: "💰" },
+  capital_gain:  { short: "キャピタル型", icon: "📈" },
+  location:      { short: "立地特化型",   icon: "🏙️" },
+  renovation:    { short: "築古再生型",   icon: "🔨" },
+};
+
 // ---- Static data mode ----
 // データはGitHub Actionsが毎朝スクレイピングして data/properties.json に保存している。
 // フロントエンドはそれを読み込むだけ。
@@ -891,8 +977,27 @@ function applyFiltersAndSort() {
       const r = p.dealRank || 'N/A';
       if (!ranks.includes(r)) return false;
     }
+    // v2.6: ペルソナフィルタ（selectedPersona が空なら通過）
+    if (selectedPersona) {
+      const matches = p.personaMatches || [];
+      if (!matches.includes(selectedPersona)) return false;
+    }
     return true;
   });
+
+  // v2.6: ペルソナ選択中は personaStars[selected] 降順で上書き（並び替え select は無視）
+  if (selectedPersona) {
+    filtered.sort((a, b) => {
+      const sa = (a.personaStars || {})[selectedPersona] || 0;
+      const sb = (b.personaStars || {})[selectedPersona] || 0;
+      if (sb !== sa) return sb - sa;
+      // 同 star は v2.5 dealScore で決定（不変）
+      return (b.dealScore || 0) - (a.dealScore || 0);
+    });
+    displayedProperties = filtered;
+    renderCards();
+    return;
+  }
 
   // Sort
   const sort = document.getElementById('sortSelect').value;
@@ -1005,6 +1110,32 @@ function dealReasonsHTML(p) {
   return `<ul class="deal-reasons">${items}</ul>${fb}`;
 }
 
+// v2.6: 複数ペルソナマッチバッジ（2つ以上で表示、3つ以上で "プレミアム"）
+function personaMultiBadgeHTML(p) {
+  const matches = p.personaMatches || [];
+  if (matches.length < 2) return '';
+  const label = matches.length >= 3 ? `🎯${matches.length} プレミアム` : `🎯${matches.length}`;
+  const title = matches.length >= 3
+    ? `${matches.length}ペルソナがMUSTを満たすプレミアム物件`
+    : `${matches.length}ペルソナのMUSTを満たす`;
+  return `<span class="persona-multi-badge" title="${title}">${label}</span>`;
+}
+
+// v2.6: 個別ペルソナ★表示（マッチ全てを表示、selectedPersona はハイライト）
+function personaStarsHTML(p) {
+  const matches = p.personaMatches || [];
+  const stars = p.personaStars || {};
+  if (matches.length === 0) return '';
+  const rows = matches.map(pid => {
+    const meta = PERSONA_LABELS[pid] || { short: pid, icon: '' };
+    const n = stars[pid] || 0;
+    const starsText = '★'.repeat(n) + '☆'.repeat(Math.max(0, 5 - n));
+    const cur = selectedPersona === pid ? ' pers-current' : '';
+    return `<div class="persona-stars-row"><span class="pers-label">${meta.icon} ${meta.short}</span><span class="pers-stars${cur}" title="MUST/PREFER評価 ${n}/5">${starsText}</span></div>`;
+  }).join('');
+  return `<div class="persona-stars-list">${rows}</div>`;
+}
+
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -1013,15 +1144,22 @@ function buildCardHTML(p, options) {
   const isFav = isFavorite(p.id);
   const isDup = p.duplicateFlag;
   const hasYield = p.yieldGross !== null && p.yieldGross > 0;
+  // v2.5 B案: yieldEstimated（median/fallback）も表示対象にする
+  const hasEstimated = !hasYield
+    && p.yieldEstimated !== null && p.yieldEstimated !== undefined && p.yieldEstimated > 0
+    && p.yieldSourceConfidence && p.yieldSourceConfidence !== 'none';
+  const displayYield = hasYield ? p.yieldGross : (hasEstimated ? p.yieldEstimated : null);
+  const isEstimatedYield = hasEstimated && p.yieldSourceConfidence !== 'actual';
   const sourceColor = SOURCE_COLORS[p.sourceName] || 'bg-gray-500';
   const walkMin = extractWalkMinutes(p.nearestStation);
 
   // ボーダー色: Sランク > Aランク > 重複 > 利回りなし > 通常
+  // v2.5 B案: yieldEstimated で表示値があれば no-yield-border は使わない
   let borderClass = '';
   if (p.dealRank === 'S') borderClass = 's-rank-card';
   else if (p.dealRank === 'A') borderClass = 'a-rank-card';
   else if (isDup) borderClass = 'duplicate-border';
-  else if (!hasYield) borderClass = 'no-yield-border';
+  else if (!hasYield && !hasEstimated) borderClass = 'no-yield-border';
 
   // SHOULD: 残存耐用年数
   const remYears = p.remainingDurableYears;
@@ -1039,17 +1177,18 @@ function buildCardHTML(p, options) {
       <svg class="w-5 h-5 ${isFav ? 'text-yellow-500' : 'text-gray-400'}" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
     </button>
     <div class="p-3">
-      <!-- レイヤー1: ランクバッジ + ソース + 物件名 + ハザード -->
-      <div class="flex items-center gap-1.5 mb-2 pr-12">
+      <!-- レイヤー1: ランクバッジ + ソース + 物件名 + ハザード + ペルソナ複数マッチ -->
+      <div class="flex items-center gap-1.5 mb-2 pr-12 flex-wrap">
         ${rankBadgeHTML(p.dealRank)}
         <span class="${sourceColor} text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0">${p.sourceName}</span>
         ${hazardIconHTML(p.hazardFlag)}
+        ${personaMultiBadgeHTML(p)}
       </div>
       <h3 class="text-sm font-semibold text-gray-800 truncate mb-1">${escapeHtml(p.name)}</h3>
       <div class="flex items-baseline gap-3 mb-0.5 flex-wrap">
         <p class="text-xl font-bold text-gray-900" style="font-size:20px">${p.priceText}</p>
-        <p class="text-base font-bold ${hasYield && p.yieldGross >= 10 ? 'text-amber-700' : hasYield && p.yieldGross >= 7 ? 'text-amber-600' : hasYield ? 'text-gray-700' : 'text-gray-400'}" style="font-size:16px;font-variant-numeric:tabular-nums">
-          ${hasYield ? p.yieldGross.toFixed(1) + '%' : '利回りなし'}
+        <p class="text-base font-bold ${hasYield && p.yieldGross >= 10 ? 'text-amber-700' : hasYield && p.yieldGross >= 7 ? 'text-amber-600' : (hasYield || hasEstimated) ? 'text-gray-700' : 'text-gray-400'}" style="font-size:16px;font-variant-numeric:tabular-nums">
+          ${displayYield !== null ? displayYield.toFixed(1) + '%' : '利回りなし'}${isEstimatedYield ? `<span class="yield-est" title="${p.yieldSourceConfidence === 'median' ? '地域中央値から推定' : 'Cap Rateベンチマークから推定'}">推定</span>` : ''}
         </p>
         ${yieldDeviationHTML(p)}
         ${scoreBreakdownHTML(p)}
@@ -1072,6 +1211,8 @@ function buildCardHTML(p, options) {
       </p>
       <!-- レイヤー3: 根拠開示 -->
       ${dealReasonsHTML(p)}
+      <!-- v2.6: ペルソナ別★評価 -->
+      ${personaStarsHTML(p)}
     </div>
   </a>`;
 }
@@ -1121,6 +1262,25 @@ function renderWelcomeFavorites() {
 ['filterArea', 'priceMin', 'priceMax', 'yieldMin', 'filterAreaSqm', 'filterWalk', 'filterAge', 'favOnly', 'excludeNoYield'].forEach(id => {
   document.getElementById(id).addEventListener('change', applyFiltersAndSort);
   document.getElementById(id).addEventListener('input', applyFiltersAndSort);
+});
+
+// v2.6: 投資スタイル（ペルソナ）セレクタ
+document.querySelectorAll('#personaSelector .persona-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const target = e.currentTarget;
+    selectedPersona = target.dataset.persona || '';
+    // アクティブ表示の切り替え
+    document.querySelectorAll('#personaSelector .persona-btn').forEach(b => {
+      if (b === target) {
+        b.classList.add('persona-btn-active');
+        b.classList.remove('bg-white','text-gray-700','border-gray-300');
+      } else {
+        b.classList.remove('persona-btn-active');
+        b.classList.add('bg-white','text-gray-700','border-gray-300');
+      }
+    });
+    applyFiltersAndSort();
+  });
 });
 document.querySelectorAll('#layoutChecks input, #typeChecks input, #structureChecks input, #rankChecks input').forEach(cb => {
   cb.addEventListener('change', applyFiltersAndSort);

@@ -1,0 +1,236 @@
+# L-008 投資家ペルソナ × 物件マッチング設定 v2.6
+# Source: company/research/topics/2026-04-19-real-estate-investor-personas-brief.md §5
+# Generated: 2026-04-19 (PGE Generator)
+# Updated:   2026-04-19 (PGE Round 2 — 4修正反映)
+#
+# 5ペルソナ（節税型は倫理的理由により除外。ブリーフ §5 の 1〜5 のみ）。
+# MUST/PREFER/NEVER 条件の閾値はすべてここに集約する。
+# - MUST 全クリアで personaStars=3 (★3)
+# - PREFER 加点 1個ごとに +1（最大 ★5）
+# - estimated 利回り（yieldSourceConfidence != "actual"）使用時は -1（信頼度補正）
+# - structureEstimated=True の場合 loan_strategy のみ追加で -1（最低 ★1）
+# - NEVER 該当があれば一律 unmatched（personaStars に出ない）
+#
+# Round 2 修正:
+#   - 修正2: location.must.min_yield 撤廃 → prefer.bonus_yield_min へ移行
+#            （ブリーフ §5.4「利回りより立地。利回り妥協」と整合）
+#   - 修正3: loan_strategy の structureEstimated 補正を common セクションに追加
+#   - 修正4: min_built_year を 1981 → 1982 に bump（1981/1-5月築の旧耐震を排除）
+#
+# 値変更時は services/persona_matcher.py のロジックと整合させること。
+
+version: "2.6.1"
+
+# ============================================================
+# 1. インカムゲイン重視型
+# ============================================================
+# 「実質キャッシュフローを毎月最大化したい」保有型投資家
+income:
+  must:
+    # 利回り基準: yieldGross または yieldEstimated >= min_yield
+    # 重要変更2 により estimated でも MUST 判定可能（ただし stars -1）
+    min_yield: 5.0
+    # 当該エリア中央値（yieldMedianInArea）以上
+    require_yield_above_area_median: true
+    # 残存耐用年数
+    min_remaining_years: 10
+    # 保有を前提とする収益物件のみ
+    allowed_property_types:
+      - "区分マンション"
+      - "投資用マンション"
+      - "中古マンション"
+      - "新築マンション"
+      - "一棟売りアパート"
+      - "一棟売りマンション"
+  prefer:
+    # Cap Rate 乖離（ベンチマーク+1%以上）
+    yield_deviation_min_pct: 1.0   # %ポイント超過
+    # 立地グレード B 以上
+    min_location_grade: "B"        # S/A/B が許容
+    # 単身向け間取り
+    single_layouts: ["1R", "1K", "1DK", "ワンルーム"]
+    # 築年数（20年以内）
+    max_age: 20
+  never:
+    # 利回り評価不能（actual / estimated とも None）
+    require_yield_value: true
+    # 立地D は出口・賃貸需要双方で破綻
+    forbidden_location_grade: ["D"]
+    # ハザード high は空室期間リスク
+    forbidden_hazard_flag: ["high"]
+
+# ============================================================
+# 2. 融資戦略型
+# ============================================================
+# 「フルローン・共同担保で最大レバレッジ・自己資金少額でスケール」
+loan_strategy:
+  must:
+    # RC/SRC/S系（法定耐用年数長め）
+    allowed_structures: ["RC", "SRC", "鉄骨S", "S造", "鉄骨"]
+    # 残存耐用年数 (融資期間 15年以上が標準で取れる水準)
+    min_remaining_years: 15
+    # 政令市内（部分一致）— 福岡市内 / 北九州市内
+    required_cities: ["福岡市", "北九州市"]
+    # 新耐震（1981/6 以降）— 年単位なので 1982 にbumpして 1981/1-5月築の旧耐震を排除
+    min_built_year: 1982
+    # 価格下限 (フルローン時に CCR が成立する規模)
+    min_price: 30000000
+  prefer:
+    # 一棟（管理難度はあるが NOI 効率と融資条件が上）
+    preferred_property_types:
+      - "一棟売りアパート"
+      - "一棟売りマンション"
+      - "一棟売りビル"
+    # 立地B以上（担保評価）
+    min_location_grade: "B"
+    # 残存25年以上で30年融資の射程
+    long_remaining_years: 25
+    # 再開発エリア（将来の担保評価上昇）
+    require_redevelopment: true
+    # 利回り（金利+返済余裕）
+    min_yield_for_prefer: 6.0
+  never:
+    # 残存5年未満は CCR 不成立
+    min_remaining_years_hard: 5
+    # 旧耐震 (1982 未満を旧耐震として扱う — 1981/1-5月築をブロック)
+    min_built_year_hard: 1982
+    # 木造×築15年超は銀行融資期間が7年未満
+    forbidden_old_wood:
+      structures: ["木造", "軽量鉄骨"]
+      min_age: 15
+
+# ============================================================
+# 3. キャピタルゲイン型
+# ============================================================
+# 「相場より安く買い、保有中はトントンでも出口で益」
+capital_gain:
+  must:
+    # 流動性最上位エリア（中央区 / 博多区のみ）
+    required_cities_exact: ["福岡市中央区", "福岡市博多区"]
+    # 区分マンション（流通量が豊富）
+    allowed_property_types:
+      - "区分マンション"
+      - "投資用マンション"
+      - "中古マンション"
+      - "新築マンション"
+    # 中央値より価格が -10% 以上安い (price <= median * (1 - threshold))
+    # price_per_sqm_median が利用可能な場合のみ判定。利用不可時は MUST 不成立扱い
+    price_below_median_pct: 10.0
+    # 新耐震（1981/6 以降）— 1982 にbumpして 1981/1-5月築の旧耐震を確実に排除
+    min_built_year: 1982
+  prefer:
+    # 再開発エリア
+    require_redevelopment: true
+    # 駅徒歩10分以内（市場プレミアムが発生するライン）
+    max_walk_minutes: 10
+    # 路線S（地下鉄空港線）
+    min_line_rank: "S"
+    # 値下げ履歴あり（売主の売却意欲）
+    require_price_drop: true
+    # 滞留 90日以上（指値余地）
+    min_days_listed: 90
+  never:
+    # 流動性低エリア（v2.5 既定の locationGrade=C/D を排除）
+    forbidden_cities_substring: ["北九州市", "久留米市", "筑後", "大牟田"]
+    # 築30年超×木造（出口詰まり）
+    forbidden_old_wood:
+      structures: ["木造", "軽量鉄骨"]
+      min_age: 30
+    # 中間サイズ（実需が付きにくい）
+    forbidden_layouts: []  # v3 送り。中央値判定で代替
+
+# ============================================================
+# 4. 立地特化型
+# ============================================================
+# 「利回りより立地。都心近接駅徒歩5分を長期保有」
+location:
+  must:
+    # 立地グレード A 以上
+    min_location_grade: "A"
+    # 駅徒歩10分以内（10分の崖）
+    max_walk_minutes: 10
+    # 路線A以上（地下鉄空港線・JR鹿児島本線・西鉄天神大牟田線）
+    min_line_rank: "A"
+    # ※ 修正2: ブリーフ §5.4「利回りより立地。利回り妥協」と整合させるため
+    #   MUST から min_yield を撤廃。利回りは prefer.bonus_yield_min で加点扱い。
+  prefer:
+    # 立地S（中央区・博多区）
+    s_location_grade: "S"
+    # 駅徒歩5分以内
+    walk_premium_minutes: 5
+    # 再開発エリア
+    require_redevelopment: true
+    # 単身向け間取り（福岡市は単身需要厚い）
+    single_layouts: ["1R", "1K", "1DK", "ワンルーム"]
+    # ハザード low
+    require_hazard_low: true
+    # 利回り加点（立地+利回りも揃えば最高評価。actual/estimated 問わず判定）
+    # 修正2: 旧 MUST「yield ≥ 4%」を PREFER 加点に格下げ
+    bonus_yield_min: 4.0
+  never:
+    # 駅徒歩15分超は「バス便扱い」
+    walk_minutes_hard_max: 15
+    # 福岡市内限定
+    forbidden_cities_substring: ["北九州市", "久留米市", "筑後", "大牟田"]
+    # 駅情報不在は判定不能
+    require_nearest_station: true
+
+# ============================================================
+# 5. 築古再生型
+# ============================================================
+# 「300万で買って300万でリフォーム、再生後利回り15%」
+renovation:
+  must:
+    # 再生後にキャッシュフロー化する価格帯
+    max_price: 10000000
+    # 再生可能な物件タイプ（区分マンションは除外）
+    allowed_property_types:
+      - "戸建"
+      - "戸建賃貸"
+      - "中古タウンハウス"
+      - "一棟売りアパート"
+      - "店舗付き住宅"
+    # 新耐震（1981/6 以降）— 1982 にbumpして 1981/1-5月築の旧耐震を確実に排除
+    min_built_year: 1982
+    # 福岡市内 + 近郊（リフォーム業者アクセス & 賃貸需要）
+    required_cities_substring:
+      - "福岡市"
+      - "糟屋郡"
+      - "大野城"
+      - "春日"
+      - "太宰府"
+      - "那珂川"
+  prefer:
+    # 築古で安い + 再生価値残る
+    age_min: 25
+    age_max: 40
+    # ファミリー向け（家賃を取れる）
+    min_area_sqm: 60.0
+    # 値下げ履歴
+    require_price_drop: true
+    # 滞留
+    min_days_listed: 90
+  never:
+    # 旧耐震 (1982 未満)
+    min_built_year_hard: 1982
+    # 北九州以遠（リフォーム業者確保難）
+    forbidden_cities_substring: ["北九州市", "久留米市", "筑後", "大牟田"]
+
+# ============================================================
+# 共通: 信頼度補正
+# ============================================================
+# yieldSourceConfidence != "actual" の estimated 物件は personaStars を -1
+# （actual の HOME'S 物件と差別化）
+#
+# 修正3: structureEstimated=True (構造推定物件) は loan_strategy のみ追加で -1
+#   理由: 融資戦略型は構造（RC/SRC/S）が法定耐用年数 = 融資期間に直結。
+#         推定構造は銀行融資の基礎資料として使えないため信頼度を下げる。
+#   適用対象は estimated_structure_penalty_personas にホワイトリスト指定。
+common:
+  estimated_yield_star_penalty: 1
+  estimated_structure_star_penalty: 1
+  estimated_structure_penalty_personas:
+    - "loan_strategy"
+  min_stars: 1   # 補正後の下限
+  max_stars: 5
+  base_stars: 3  # MUST 全クリアの基本点
