@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L-008 AIスコアリングの仕組み | 物件アグリゲーター</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#1e40af',
+        primaryLight: '#3b82f6',
+        accentWarm: '#b45309',
+        accentSilver: '#475569',
+        success: '#15803d',
+        warning: '#b91c1c',
+        bg: '#f8fafc',
+        text1: '#1e293b',
+        textMuted: '#64748b',
+        border1: '#e2e8f0',
+      },
+      fontFamily: {
+        sans: ['Inter', 'Noto Sans JP', 'system-ui', 'sans-serif'],
+      }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: 'Inter', 'Noto Sans JP', system-ui, sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums; }
+  .rank-badge { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:24px; font-weight:700; font-size:12px; border-radius:4px; padding:0 6px; }
+  .rank-S { background:#b45309; color:#fff; }
+  .rank-A { background:#475569; color:#fff; }
+  .rank-B { background:#1e40af; color:#fff; }
+  .rank-C { background:#94a3b8; color:#fff; }
+  .rank-D { background:#cbd5e1; color:#475569; }
+  .rank-NA { background:#e2e8f0; color:#64748b; }
+  .axis-card { transition: box-shadow .2s ease-out, transform .2s ease-out; cursor: pointer; }
+  .axis-card:hover { box-shadow: 0 10px 25px -5px rgba(0,0,0,.10); transform: translateY(-2px); }
+  .axis-card.expanded { box-shadow: 0 10px 25px -5px rgba(0,0,0,.10); }
+  .persona-tab { transition: all .2s ease-out; cursor: pointer; }
+  .persona-tab[aria-selected="true"] { color:#1e40af; border-bottom-color:#1e40af; font-weight:700; }
+  .source-bar { transition: width 0.8s ease-out; }
+  .flash { animation: flash 200ms ease-out; }
+  @keyframes flash { 0% { background: #fde68a; } 100% { background: transparent; } }
+  .fade-in { animation: fadeIn .3s ease-out; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  input[type="range"] { -webkit-appearance: none; appearance: none; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #1e40af; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: #1e40af; border-radius: 50%; cursor: pointer; border: 2px solid #fff; }
+  input[type="range"]:focus { box-shadow: 0 0 0 3px rgba(30,64,175,.2); }
+  .focus-ring:focus-visible { outline: 2px solid #1e40af; outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-primary text-white shadow-md">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+      <div>
+        <div class="text-sm font-semibold leading-tight">AIスコアリングの仕組み</div>
+        <div class="text-[11px] opacity-75 leading-tight">物件アグリゲーター v2.6</div>
+      </div>
+    </div>
+    <a href="index.html" class="inline-flex items-center gap-1.5 text-sm font-medium hover:underline focus-ring px-2 py-1 rounded">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      <span>メインアプリに戻る</span>
+    </a>
+  </div>
+</header>
+
+<!-- Section 1: Hero -->
+<section class="bg-gradient-to-b from-primary to-text1 text-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+    <h1 class="text-3xl sm:text-5xl font-bold leading-tight tracking-tight mb-4">
+      <span class="num" id="heroTotal" data-target="4171">0</span>件 を
+      <span class="text-[#fcd34d]">5軸スコア × 5ペルソナ</span> で多視点評価
+    </h1>
+    <p class="text-base sm:text-lg opacity-85 mb-10 max-w-3xl">
+      福岡県の投資物件を3つのソースから集約し、投資家ロジックに基づいて自動採点します。
+      数字の根拠と、誰にとっての掘り出し物かが、すべて画面で確認できます。
+    </p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-white/15">
+        <div class="num text-4xl sm:text-5xl font-bold leading-none" id="kpiTotal" data-target="4171">0</div>
+        <div class="text-xs sm:text-sm opacity-80 mt-2">物件総数</div>
+      </div>
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-white/15">
+        <div class="num text-4xl sm:text-5xl font-bold leading-none" id="kpiSrank" data-target="26">0</div>
+        <div class="text-xs sm:text-sm opacity-80 mt-2">Sランク件数</div>
+      </div>
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-white/15">
+        <div class="num text-4xl sm:text-5xl font-bold leading-none" id="kpiPremium" data-target="130">0</div>
+        <div class="text-xs sm:text-sm opacity-80 mt-2">プレミアム物件<span class="block text-[10px] opacity-70">3ペルソナ以上マッチ</span></div>
+      </div>
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-white/15">
+        <div class="num text-4xl sm:text-5xl font-bold leading-none"><span id="kpiHomesShare">0</span><span class="text-2xl">%</span></div>
+        <div class="text-xs sm:text-sm opacity-80 mt-2">プレミアム内 HOME'S 比率<span class="block text-[10px] opacity-70">v2.5は実質100%</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2: Before / After -->
+<section class="bg-bg py-16 sm:py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <h2 class="text-2xl sm:text-3xl font-bold mb-2">単一スコアから「投資家視点ごとのランク」へ</h2>
+    <p class="text-textMuted mb-10">配点先行の設計を捨てて、「誰にとっての掘り出し物か」を起点に再設計しました。</p>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="bg-white border-l-4 border-warning rounded-lg p-6 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-xs font-bold text-warning uppercase tracking-wider">Before</span>
+          <span class="text-xs text-textMuted">v2.5</span>
+        </div>
+        <h3 class="text-lg font-bold mb-3">単一スコア → 全員 HOME'S 偏重</h3>
+        <ul class="space-y-2 text-sm text-text1">
+          <li class="flex gap-2"><span class="text-warning">×</span><span>4軸を合算した単一スコアでランク付け</span></li>
+          <li class="flex gap-2"><span class="text-warning">×</span><span>SUUMO/ふれんずは利回り未掲載で構造的に S 不可</span></li>
+          <li class="flex gap-2"><span class="text-warning">×</span><span>結果: <strong>S/A ランクが事実上 HOME'S 100%</strong></span></li>
+          <li class="flex gap-2"><span class="text-warning">×</span><span>「誰にとっての掘り出し物か」が説明できない</span></li>
+        </ul>
+      </div>
+      <div class="bg-white border-l-4 border-success rounded-lg p-6 shadow-sm">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-xs font-bold text-success uppercase tracking-wider">After</span>
+          <span class="text-xs text-textMuted">v2.6</span>
+        </div>
+        <h3 class="text-lg font-bold mb-3">投資家ロジック → 物件抽出 → ランク</h3>
+        <ul class="space-y-2 text-sm text-text1">
+          <li class="flex gap-2"><span class="text-success">○</span><span>5軸スコア（v2.6 絶対値評価）+ 5ペルソナ並走</span></li>
+          <li class="flex gap-2"><span class="text-success">○</span><span>SUUMO/ふれんずも推計利回り経由で A まで到達可</span></li>
+          <li class="flex gap-2"><span class="text-success">○</span><span>S は仕様として実利回り掲載（HOME'S）に限定し透明化</span></li>
+          <li class="flex gap-2"><span class="text-success">○</span><span>プレミアム物件 130件: SUUMO 55% / ふれんず 34% / HOME'S 11%</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 3: 5-axis Scoring -->
+<section class="bg-white py-16 sm:py-20 border-y border-border1">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <h2 class="text-2xl sm:text-3xl font-bold mb-2">5軸スコアリング（合計100点）</h2>
+    <p class="text-textMuted mb-10">立地・収益・融資・滞留・リスクの5軸を Python ルールで合算。再現性100%、ハルシネーション0%。</p>
+
+    <!-- Donut chart + axis cards -->
+    <div class="grid lg:grid-cols-3 gap-8 items-start">
+      <!-- Donut -->
+      <div class="lg:col-span-1 flex flex-col items-center">
+        <svg viewBox="0 0 200 200" class="w-56 h-56 sm:w-64 sm:h-64" aria-label="5軸の配点割合 ドーナツチャート">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#e2e8f0" stroke-width="32"/>
+          <!-- 5 segments: 30+30+20+10+10 = 100 -->
+          <!-- circumference = 2*pi*80 ≈ 502.65 -->
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#1e40af" stroke-width="32" stroke-dasharray="150.8 502.65" stroke-dashoffset="0" transform="rotate(-90 100 100)" aria-label="立地30"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#3b82f6" stroke-width="32" stroke-dasharray="150.8 502.65" stroke-dashoffset="-150.8" transform="rotate(-90 100 100)" aria-label="収益30"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#475569" stroke-width="32" stroke-dasharray="100.5 502.65" stroke-dashoffset="-301.6" transform="rotate(-90 100 100)" aria-label="融資20"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#94a3b8" stroke-width="32" stroke-dasharray="50.3 502.65" stroke-dashoffset="-402.1" transform="rotate(-90 100 100)" aria-label="滞留10"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#b45309" stroke-width="32" stroke-dasharray="50.3 502.65" stroke-dashoffset="-452.4" transform="rotate(-90 100 100)" aria-label="リスク10"/>
+          <text x="100" y="95" text-anchor="middle" class="num" font-size="34" font-weight="700" fill="#1e293b">100</text>
+          <text x="100" y="120" text-anchor="middle" font-size="11" fill="#64748b">満点</text>
+        </svg>
+        <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-primary"></span>立地 30</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-primaryLight"></span>収益 30</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-accentSilver"></span>融資 20</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-slate-400"></span>滞留 10</div>
+          <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-accentWarm"></span>リスク 10</div>
+        </div>
+      </div>
+
+      <!-- Axis cards -->
+      <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="axisCards">
+        <!-- 立地 -->
+        <div class="axis-card bg-white border border-border1 rounded-lg p-4" data-axis="location" tabindex="0" role="button" aria-expanded="false" aria-controls="detail-location">
+          <div class="flex items-start justify-between mb-2">
+            <svg class="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="num text-3xl font-bold text-primary">30</span>
+          </div>
+          <div class="text-sm font-semibold mb-1">立地</div>
+          <div class="text-xs text-textMuted">エリアランク + 駅徒歩 + 路線ランク</div>
+        </div>
+        <!-- 収益 -->
+        <div class="axis-card bg-white border border-border1 rounded-lg p-4" data-axis="yield" tabindex="0" role="button" aria-expanded="false" aria-controls="detail-yield">
+          <div class="flex items-start justify-between mb-2">
+            <svg class="w-6 h-6 text-primaryLight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            <span class="num text-3xl font-bold text-primaryLight">30</span>
+          </div>
+          <div class="text-sm font-semibold mb-1">収益</div>
+          <div class="text-xs text-textMuted">絶対利回り 9段階閾値（v2.6 新方式）</div>
+        </div>
+        <!-- 融資 -->
+        <div class="axis-card bg-white border border-border1 rounded-lg p-4" data-axis="loan" tabindex="0" role="button" aria-expanded="false" aria-controls="detail-loan">
+          <div class="flex items-start justify-between mb-2">
+            <svg class="w-6 h-6 text-accentSilver" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            <span class="num text-3xl font-bold text-accentSilver">20</span>
+          </div>
+          <div class="text-sm font-semibold mb-1">融資</div>
+          <div class="text-xs text-textMuted">残存耐用年数（法定耐用 − 築年数）</div>
+        </div>
+        <!-- 滞留 -->
+        <div class="axis-card bg-white border border-border1 rounded-lg p-4" data-axis="stagnation" tabindex="0" role="button" aria-expanded="false" aria-controls="detail-stagnation">
+          <div class="flex items-start justify-between mb-2">
+            <svg class="w-6 h-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="num text-3xl font-bold text-slate-400">10</span>
+          </div>
+          <div class="text-sm font-semibold mb-1">滞留</div>
+          <div class="text-xs text-textMuted">掲載経過日数（v2.6 は枠のみ）</div>
+        </div>
+        <!-- リスク -->
+        <div class="axis-card bg-white border border-border1 rounded-lg p-4" data-axis="risk" tabindex="0" role="button" aria-expanded="false" aria-controls="detail-risk">
+          <div class="flex items-start justify-between mb-2">
+            <svg class="w-6 h-6 text-accentWarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 7.5-4.5 0-8-2.5-8-7.5V6l8-3 8 3z"/></svg>
+            <span class="num text-3xl font-bold text-accentWarm">10</span>
+          </div>
+          <div class="text-sm font-semibold mb-1">リスク</div>
+          <div class="text-xs text-textMuted">再開発エリア + ハザード判定</div>
+        </div>
+        <!-- Sランクガード -->
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div class="flex items-start justify-between mb-2">
+            <svg class="w-6 h-6 text-accentWarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            <span class="num text-base font-bold text-accentWarm">S</span>
+          </div>
+          <div class="text-sm font-semibold mb-1">Sランク追加ガード</div>
+          <div class="text-xs text-textMuted">立地15+ ∧ 収益15+ ∧ 融資10+ ∧ 残存10年+ ∧ 価格3000万以下 ∧ 構造確定</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Axis detail (expanded) -->
+    <div id="axisDetailContainer" class="mt-6"></div>
+  </div>
+</section>
+
+<!-- Section 4: Score Simulator -->
+<section class="bg-bg py-16 sm:py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <h2 class="text-2xl sm:text-3xl font-bold mb-2">スコア計算シミュレーター</h2>
+    <p class="text-textMuted mb-10">入力を動かすと dealScore とランクがリアルタイムで変わります。Sランク到達条件を体感してください。</p>
+
+    <div class="grid lg:grid-cols-5 gap-6">
+      <!-- Inputs -->
+      <div class="lg:col-span-3 bg-white border border-border1 rounded-lg p-6 shadow-sm">
+        <h3 class="text-sm font-bold text-textMuted uppercase tracking-wider mb-5">入力</h3>
+        <div class="space-y-5">
+          <!-- yield -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="simYield" class="text-sm font-semibold">表面利回り</label>
+              <span class="num text-base font-bold text-primary"><span id="simYieldVal">7.0</span>%</span>
+            </div>
+            <input type="range" id="simYield" min="2" max="12" step="0.1" value="7.0" class="w-full focus-ring" aria-valuetext="7.0%">
+            <div class="flex justify-between text-[10px] text-textMuted num mt-1"><span>2%</span><span>4%</span><span>6%</span><span>8%</span><span>10%</span><span>12%</span></div>
+          </div>
+          <!-- location grade -->
+          <div>
+            <label for="simLocation" class="block text-sm font-semibold mb-2">立地グレード</label>
+            <select id="simLocation" class="w-full border border-border1 rounded-md px-3 py-2 text-sm focus-ring bg-white">
+              <option value="S">S — 福岡市中央区・博多区</option>
+              <option value="A" selected>A — 福岡市早良区・南区</option>
+              <option value="B">B — 福岡市西区・城南区・東区</option>
+              <option value="C">C — 北九州市・久留米市・筑後</option>
+              <option value="D">D — 福岡県内その他・県外</option>
+            </select>
+          </div>
+          <!-- walk minutes -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="simWalk" class="text-sm font-semibold">駅徒歩</label>
+              <span class="num text-base font-bold text-primary"><span id="simWalkVal">8</span>分</span>
+            </div>
+            <input type="range" id="simWalk" min="1" max="25" step="1" value="8" class="w-full focus-ring">
+          </div>
+          <!-- line rank -->
+          <div>
+            <label for="simLine" class="block text-sm font-semibold mb-2">最寄路線ランク</label>
+            <select id="simLine" class="w-full border border-border1 rounded-md px-3 py-2 text-sm focus-ring bg-white">
+              <option value="S">S — 福岡市地下鉄 空港線</option>
+              <option value="A" selected>A — JR鹿児島本線・西鉄天神大牟田線</option>
+              <option value="B">B — 七隈線・箱崎線</option>
+              <option value="C">C — JR筑肥線</option>
+              <option value="-">対象外</option>
+            </select>
+          </div>
+          <!-- age -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="simAge" class="text-sm font-semibold">築年数</label>
+              <span class="num text-base font-bold text-primary"><span id="simAgeVal">15</span>年</span>
+            </div>
+            <input type="range" id="simAge" min="0" max="50" step="1" value="15" class="w-full focus-ring">
+          </div>
+          <!-- structure -->
+          <div>
+            <label for="simStructure" class="block text-sm font-semibold mb-2">構造</label>
+            <select id="simStructure" class="w-full border border-border1 rounded-md px-3 py-2 text-sm focus-ring bg-white">
+              <option value="RC" selected>RC（鉄筋コンクリート） / 法定47年</option>
+              <option value="SRC">SRC（鉄骨鉄筋コンクリート） / 47年</option>
+              <option value="S造">S造（鉄骨） / 34年</option>
+              <option value="木造">木造 / 22年</option>
+            </select>
+          </div>
+          <!-- price -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="simPrice" class="text-sm font-semibold">価格</label>
+              <span class="num text-base font-bold text-primary"><span id="simPriceVal">2500</span>万円</span>
+            </div>
+            <input type="range" id="simPrice" min="100" max="10000" step="100" value="2500" class="w-full focus-ring">
+          </div>
+          <!-- flags -->
+          <div class="grid grid-cols-2 gap-3 pt-2">
+            <label class="flex items-center gap-2 text-sm cursor-pointer focus-ring rounded p-1">
+              <input type="checkbox" id="simRedevelopment" class="rounded text-primary"> 再開発エリア
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer focus-ring rounded p-1">
+              <input type="checkbox" id="simHazard" class="rounded text-primary"> ハザード high
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer focus-ring rounded p-1">
+              <input type="checkbox" id="simStructEst" class="rounded text-primary"> 構造推定（structureEstimated）
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer focus-ring rounded p-1">
+              <input type="checkbox" id="simYieldEst" class="rounded text-primary"> 推計利回り（estimated）
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div class="lg:col-span-2">
+        <div class="bg-white border border-border1 rounded-lg p-6 shadow-sm sticky top-20">
+          <h3 class="text-sm font-bold text-textMuted uppercase tracking-wider mb-5">出力</h3>
+          <div id="simOutput" class="text-center mb-6">
+            <div class="num text-7xl font-bold leading-none transition-colors" id="simScore">—</div>
+            <div class="text-xs text-textMuted mt-1">/ 100</div>
+            <div class="mt-4 inline-flex items-center gap-2">
+              <span class="text-sm">投資ランク</span>
+              <span class="rank-badge rank-A" id="simRank">A</span>
+            </div>
+          </div>
+          <div id="simBreakdown" class="space-y-2 text-sm"></div>
+          <div id="simGuards" class="mt-4 text-xs text-textMuted space-y-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 5: Personas -->
+<section class="bg-white py-16 sm:py-20 border-y border-border1">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <h2 class="text-2xl sm:text-3xl font-bold mb-2">5つの投資家ペルソナ</h2>
+    <p class="text-textMuted mb-8">配点合算ではなく、「投資家ごとの判断基準」を満たす物件を抽出して並走評価します。</p>
+
+    <!-- Tabs -->
+    <div role="tablist" class="flex gap-1 sm:gap-2 mb-6 overflow-x-auto border-b border-border1" id="personaTabs">
+      <button class="persona-tab px-3 py-2 text-sm whitespace-nowrap border-b-2 border-transparent text-textMuted focus-ring" role="tab" aria-selected="true" data-persona="income">インカム重視</button>
+      <button class="persona-tab px-3 py-2 text-sm whitespace-nowrap border-b-2 border-transparent text-textMuted focus-ring" role="tab" aria-selected="false" data-persona="loan_strategy">融資戦略</button>
+      <button class="persona-tab px-3 py-2 text-sm whitespace-nowrap border-b-2 border-transparent text-textMuted focus-ring" role="tab" aria-selected="false" data-persona="capital_gain">キャピタルゲイン</button>
+      <button class="persona-tab px-3 py-2 text-sm whitespace-nowrap border-b-2 border-transparent text-textMuted focus-ring" role="tab" aria-selected="false" data-persona="location">立地特化</button>
+      <button class="persona-tab px-3 py-2 text-sm whitespace-nowrap border-b-2 border-transparent text-textMuted focus-ring" role="tab" aria-selected="false" data-persona="renovation">築古再生</button>
+    </div>
+
+    <!-- Tab content -->
+    <div id="personaContent" class="fade-in">
+      <!-- filled by JS -->
+      <div class="text-textMuted text-sm">読み込み中…</div>
+    </div>
+
+    <!-- Tax-saving exclusion notice -->
+    <div class="mt-10 bg-amber-50 border border-amber-200 rounded-lg p-5">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-accentWarm flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+        <div>
+          <div class="font-bold text-sm mb-1">節税・団信型ペルソナは意図的に除外</div>
+          <p class="text-sm text-text1 leading-relaxed">
+            業界で「カモ化」批判がある営業手法（新築ワンルーム節税）はペルソナ化せず、L-008 では推奨対象から除外します。
+            てるさんの哲学（営業利益率向上＝健全な投資判断）と倫理整合させるための明示的な選択です。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 6: Data Sources -->
+<section class="bg-bg py-16 sm:py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <h2 class="text-2xl sm:text-3xl font-bold mb-2">データソースとカバレッジ</h2>
+    <p class="text-textMuted mb-10">3サイトの強みを組み合わせて4,171件をカバー。Sランクは実利回り掲載の信頼度を担保するため HOME'S 限定としています。</p>
+
+    <div id="sourceBars" class="space-y-5 mb-10">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="bg-white border-l-4 border-primary rounded-lg p-5 shadow-sm">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <div class="text-sm">
+          <div class="font-bold mb-1">なぜ S ランクは HOME'S 限定なのか？</div>
+          <p class="text-text1 leading-relaxed">
+            SUUMO/ふれんずは利回り未掲載のため、エリア中央値からの<strong>推計利回り</strong>を使います。
+            推計値の信頼度を考慮し、collection_score の収益軸は半分（最大15点）にクリップ。
+            結果として実利回り掲載物件のみが S ランクの 80点以上に到達できる設計です。
+            <strong>SUUMO/ふれんずの優良物件は A ランクとペルソナマッチで救済</strong>しています。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 7: Real Data Examples -->
+<section class="bg-white py-16 sm:py-20 border-y border-border1">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <h2 class="text-2xl sm:text-3xl font-bold mb-2">リアルデータでの実例</h2>
+    <p class="text-textMuted mb-10">いま properties.json に入っている本物のデータです。</p>
+
+    <div class="grid lg:grid-cols-2 gap-8">
+      <!-- S-rank Top 3 -->
+      <div>
+        <h3 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="rank-badge rank-S">S</span>
+          <span>Sランク 上位3件</span>
+        </h3>
+        <div id="srankTop3" class="space-y-3">
+          <div class="text-textMuted text-sm">読み込み中…</div>
+        </div>
+      </div>
+
+      <!-- Premium pie -->
+      <div>
+        <h3 class="text-base font-bold mb-4">プレミアム物件 130件のソース内訳</h3>
+        <p class="text-xs text-textMuted mb-4">3つ以上のペルソナにマッチした「真の優良物件」。<strong>HOME'S 偏重バイアスが解消</strong>されています。</p>
+        <div class="bg-white border border-border1 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-6">
+          <svg viewBox="0 0 200 200" class="w-40 h-40" id="premiumPie" aria-label="プレミアム物件のソース別内訳円グラフ">
+            <!-- dynamically generated -->
+          </svg>
+          <div id="premiumPieLegend" class="text-sm space-y-2 flex-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 8: Out of Scope -->
+<section class="bg-bg py-16 sm:py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <h2 class="text-2xl sm:text-3xl font-bold mb-2">スコープ外決定（透明性のために）</h2>
+    <p class="text-textMuted mb-10">技術的に取れるサイトでも、規約・倫理・LPM のレピュテーションを優先して除外しているサイトがあります。</p>
+
+    <div class="grid md:grid-cols-3 gap-4">
+      <!-- 楽待 -->
+      <div class="bg-white border border-border1 rounded-lg p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-base font-bold">楽待</div>
+          <span class="text-[10px] font-bold text-warning bg-red-50 px-2 py-0.5 rounded">EXCLUDED</span>
+        </div>
+        <div class="text-xs text-textMuted mb-2 font-semibold uppercase tracking-wider">理由</div>
+        <p class="text-sm text-text1 mb-3">利用規約 第10条 第1項(6)号で「クローラー・RPA等のスクレイピング」を<strong>名指しで禁止</strong>。LPM 法人としてのレピュテーションリスクが許容不可。</p>
+        <div class="text-xs text-textMuted mb-2 font-semibold uppercase tracking-wider">代替</div>
+        <p class="text-xs text-text1">入社後 LPM 経由で公式パートナー API の問い合わせを検討</p>
+      </div>
+
+      <!-- 健美家 -->
+      <div class="bg-white border border-border1 rounded-lg p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-base font-bold">健美家</div>
+          <span class="text-[10px] font-bold text-warning bg-red-50 px-2 py-0.5 rounded">EXCLUDED</span>
+        </div>
+        <div class="text-xs text-textMuted mb-2 font-semibold uppercase tracking-wider">理由</div>
+        <p class="text-sm text-text1 mb-3">robots.txt で <code class="text-[11px] bg-slate-100 px-1 py-0.5 rounded">ClaudeBot</code> 等を名指し disallow + 利用規約が全URL 404 で非公開 + 2024/9 に20万件情報漏洩事故あり警戒度高。</p>
+        <div class="text-xs text-textMuted mb-2 font-semibold uppercase tracking-wider">代替</div>
+        <p class="text-xs text-text1">入社後 LPM 経由で公式パートナー API の問い合わせを検討</p>
+      </div>
+
+      <!-- レインズ -->
+      <div class="bg-white border border-border1 rounded-lg p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-base font-bold">レインズ</div>
+          <span class="text-[10px] font-bold text-textMuted bg-slate-100 px-2 py-0.5 rounded">DEFERRED</span>
+        </div>
+        <div class="text-xs text-textMuted mb-2 font-semibold uppercase tracking-wider">理由</div>
+        <p class="text-sm text-text1 mb-3">不動産流通機構の指定流通機構データベース。<strong>宅地建物取引業者ライセンス必須</strong>。API公開なし、個人ではアクセス不可。</p>
+        <div class="text-xs text-textMuted mb-2 font-semibold uppercase tracking-wider">代替</div>
+        <p class="text-xs text-text1">2026-04-20 LPM 入社後、宅建業者ステータス確認のうえ正式接続を検討</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-text1 text-white py-10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div>
+      <div class="text-sm font-bold mb-1">L-008 物件アグリゲーター</div>
+      <div class="text-xs opacity-70 num">v2.6 / 2026-04-20 / 4,171件 (HOME'S 1,485 + SUUMO 1,370 + ふれんず 1,316)</div>
+    </div>
+    <a href="index.html" class="inline-flex items-center gap-2 bg-white text-primary px-4 py-2 rounded-md text-sm font-semibold hover:bg-bg transition-colors focus-ring">
+      <span>メインアプリへ</span>
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+  </div>
+</footer>
+
+<script>
+// ========== Constants (mirrored from config/scoring.yaml + config/personas.yaml) ==========
+
+const SCORING_CONFIG = {
+  area_points: { S: 20, A: 15, B: 10, C: 5, D: 0 },
+  walk: { full: 10, half: 15, full_pts: 10, half_pts: 5, none_pts: 0 },
+  line_bonus: { S: 3, A: 2, B: 1, C: 0, '-': 0 },
+  yield_table: [
+    { min: 9.0, score: 30 },
+    { min: 8.0, score: 25 },
+    { min: 7.0, score: 20 },
+    { min: 6.0, score: 15 },
+    { min: 5.0, score: 10 },
+    { min: 4.0, score: 5 },
+    { min: 0.0, score: 0 },
+  ],
+  loan_brackets: [
+    { min_remaining: 20, points: 20 },
+    { min_remaining: 10, points: 15 },
+    { min_remaining: 5, points: 10 },
+    { min_remaining: 1, points: 5 },
+    { min_remaining: 0, points: 0 },
+  ],
+  structure_lifespan: { 'RC': 47, 'SRC': 47, 'S造': 34, '木造': 22 },
+  thresholds: {
+    rank_S: 80, rank_A: 65, rank_B: 50, rank_C: 35,
+    s_rank_min_location: 15,
+    s_rank_min_loan: 10,
+    s_rank_min_yield: 15,
+    s_rank_min_remaining_years: 10,
+    s_rank_max_price: 30000000,
+  },
+  risk: { base: 5, redev: 5, hazard_high: -5 },
+  caps: { location: 30, yield: 30, loan: 20, risk_min: 0, risk_max: 10 },
+};
+
+const AXIS_DETAILS = {
+  location: {
+    title: '立地スコア（最大30点）',
+    body: 'エリアランク（最大20点） + 駅徒歩（最大10点） + 路線ボーナス（最大3点）。<br>福岡市中央区・博多区がエリア S（20点）、徒歩10分以内で +10、地下鉄空港線で +3。',
+    table: [
+      ['エリアランク S（中央区・博多区）', '20点'],
+      ['エリアランク A（早良区・南区）', '15点'],
+      ['エリアランク B（西区・城南区・東区）', '10点'],
+      ['駅徒歩 1〜10分', '+10点'],
+      ['駅徒歩 11〜15分', '+5点'],
+      ['路線 S（地下鉄空港線）', '+3点'],
+      ['路線 A（JR鹿児島本線・西鉄天神大牟田線）', '+2点'],
+    ],
+  },
+  yield: {
+    title: '収益スコア（最大30点・v2.6 絶対値方式）',
+    body: '旧 v2.5 はベンチマーク乖離率で計算していたが、SUUMO/ふれんずの推計利回り≒中央値で 0 点になる構造的バグがあった。<br>v2.6 で <strong>絶対利回りの9段階閾値</strong>に切替。estimated 利回りは半クリップ（最大15点）で信頼度補正。',
+    table: [
+      ['利回り 9.0%以上', '30点'],
+      ['利回り 8.0〜8.9%', '25点'],
+      ['利回り 7.0〜7.9%', '20点'],
+      ['利回り 6.0〜6.9%', '15点'],
+      ['利回り 5.0〜5.9%', '10点'],
+      ['利回り 4.0〜4.9%', '5点'],
+      ['利回り 4.0%未満', '0点'],
+      ['estimated（推計）の場合', '最大15点に半クリップ'],
+    ],
+  },
+  loan: {
+    title: '融資スコア（最大20点）',
+    body: '残存耐用年数 = 法定耐用年数（RC/SRC=47, S造=34, 木造=22）− 築年数。<br>残存20年以上ならフルローンの射程、5年未満は CCR 不成立として 0 点。',
+    table: [
+      ['残存耐用年数 20年以上', '20点'],
+      ['残存耐用年数 10〜19年', '15点'],
+      ['残存耐用年数 5〜9年', '10点'],
+      ['残存耐用年数 1〜4年', '5点'],
+      ['残存耐用年数 0年（法定超え）', '0点'],
+      ['残存耐用年数 5年未満', '強制 D 降格'],
+    ],
+  },
+  stagnation: {
+    title: '滞留スコア（最大10点・v2.6 は枠のみ）',
+    body: '物件の掲載経過日数（firstSeenAt から今日まで）を加点する枠。<br>v2.6 時点では履歴データ蓄積中のため 0 固定。蓄積後に有効化（90日経過 = 売主の売却意欲 = 指値余地）。',
+    table: [
+      ['v2.6 現在', '0点（固定）'],
+      ['将来: 90日経過', '+5点（仮）'],
+      ['将来: 180日経過', '+10点（仮）'],
+    ],
+  },
+  risk: {
+    title: 'リスクスコア（最大10点）',
+    body: '基本5点 + 再開発エリア(+5) − ハザード high(-5)。<br>再開発エリア = 天神ビッグバン / 博多コネクティッド / 千早再開発 / 七隈線延伸後。',
+    table: [
+      ['基本（ハザードなし）', '5点'],
+      ['再開発エリア内', '+5点'],
+      ['ハザード high（浸水流域）', '-5点'],
+      ['上下限', '0〜10点でクリップ'],
+    ],
+  },
+};
+
+const PERSONAS = {
+  income: {
+    name: 'インカムゲイン重視型',
+    tagline: 'NOI / Cap Rate で毎月のキャッシュフローを最大化する保有型投資家',
+    must: ['利回り 5%以上（actual or estimated）', 'エリア中央値以上', '残存耐用年数 10年以上'],
+  },
+  loan_strategy: {
+    name: '融資戦略型',
+    tagline: '法定耐用フル取り・共同担保で最大レバレッジ・自己資金少額でスケール',
+    must: ['構造 RC / SRC / 鉄骨S（融資期間長め）', '残存耐用 15年以上 + 築1982以降', '福岡市・北九州市内 + 価格3,000万以上'],
+  },
+  capital_gain: {
+    name: 'キャピタルゲイン型',
+    tagline: '相場中央値より-10%以上安く買い、保有中はトントンでも出口で益を取る',
+    must: ['福岡市中央区 or 博多区限定', '区分マンション系', '価格が中央値より10%以上安い + 築1982以降'],
+  },
+  location: {
+    name: '立地特化型',
+    tagline: '利回りより立地。都心近接駅徒歩5分の物件を長期保有するサラリーマン投資家',
+    must: ['立地グレード A以上（福岡市中央区/博多区/早良区/南区）', '駅徒歩10分以内', '路線A以上（地下鉄空港線・JR鹿児島本線・西鉄天神大牟田線）'],
+  },
+  renovation: {
+    name: '築古再生型',
+    tagline: '築古戸建てを安く仕入れ、リフォームで再生後利回り15%を狙う現金投資家',
+    must: ['価格1,000万円以下', '戸建系（区分マンションは除外）+ 築1982以降', '福岡市内 or 近郊（糟屋郡・大野城・春日・太宰府・那珂川）'],
+  },
+};
+
+// ========== Scoring logic (mirrored from services/scoring.py) ==========
+
+function calcLocationScore(locationGrade, walkMin, lineRank) {
+  const area = SCORING_CONFIG.area_points[locationGrade] ?? 0;
+  let walk = 0;
+  if (walkMin <= 10) walk = SCORING_CONFIG.walk.full_pts;
+  else if (walkMin <= 15) walk = SCORING_CONFIG.walk.half_pts;
+  const line = SCORING_CONFIG.line_bonus[lineRank] ?? 0;
+  return Math.min(SCORING_CONFIG.caps.location, area + walk + line);
+}
+
+function calcYieldScore(yieldPct, isEstimated) {
+  const sortedTable = [...SCORING_CONFIG.yield_table].sort((a, b) => b.min - a.min);
+  let raw = 0;
+  for (const row of sortedTable) {
+    if (yieldPct >= row.min) { raw = row.score; break; }
+  }
+  const cap = isEstimated ? Math.floor(SCORING_CONFIG.caps.yield / 2) : SCORING_CONFIG.caps.yield;
+  return Math.min(cap, raw);
+}
+
+function calcLoanScore(structure, age) {
+  const lifespan = SCORING_CONFIG.structure_lifespan[structure] ?? 47;
+  const remaining = lifespan - age;
+  const sorted = [...SCORING_CONFIG.loan_brackets].sort((a, b) => b.min_remaining - a.min_remaining);
+  for (const b of sorted) {
+    if (remaining >= b.min_remaining) return { score: b.points, remaining };
+  }
+  return { score: 0, remaining };
+}
+
+function calcRiskScore(redev, hazardHigh) {
+  let s = SCORING_CONFIG.risk.base;
+  if (redev) s += SCORING_CONFIG.risk.redev;
+  if (hazardHigh) s += SCORING_CONFIG.risk.hazard_high;
+  return Math.max(SCORING_CONFIG.caps.risk_min, Math.min(SCORING_CONFIG.caps.risk_max, s));
+}
+
+function assignRank(score) {
+  const t = SCORING_CONFIG.thresholds;
+  if (score >= t.rank_S) return 'S';
+  if (score >= t.rank_A) return 'A';
+  if (score >= t.rank_B) return 'B';
+  if (score >= t.rank_C) return 'C';
+  return 'D';
+}
+
+function applyGuards({ rank, locationScore, loanScore, yieldScore, remaining, price, structureEstimated }) {
+  const t = SCORING_CONFIG.thresholds;
+  if (remaining !== null && remaining < 5) return { rank: 'D', reason: '残存5年未満で強制 D 降格' };
+  if (rank !== 'S') return { rank, reason: null };
+  const reasons = [];
+  if (locationScore < t.s_rank_min_location) reasons.push('立地15未満');
+  if (loanScore < t.s_rank_min_loan) reasons.push('融資10未満');
+  if (yieldScore < t.s_rank_min_yield) reasons.push('収益15未満');
+  if (remaining < t.s_rank_min_remaining_years) reasons.push('残存10年未満');
+  if (price > t.s_rank_max_price) reasons.push('価格3000万超');
+  if (structureEstimated) reasons.push('構造推定');
+  if (reasons.length === 0) return { rank: 'S', reason: null };
+  return { rank: 'A', reason: reasons.join(' / ') };
+}
+
+// ========== Simulator ==========
+
+let lastRank = null;
+function recalcSim() {
+  const yieldVal = parseFloat(document.getElementById('simYield').value);
+  const locGrade = document.getElementById('simLocation').value;
+  const walkVal = parseInt(document.getElementById('simWalk').value);
+  const lineRank = document.getElementById('simLine').value;
+  const ageVal = parseInt(document.getElementById('simAge').value);
+  const structure = document.getElementById('simStructure').value;
+  const priceMan = parseInt(document.getElementById('simPrice').value);
+  const redev = document.getElementById('simRedevelopment').checked;
+  const hazardHigh = document.getElementById('simHazard').checked;
+  const structureEstimated = document.getElementById('simStructEst').checked;
+  const yieldEstimated = document.getElementById('simYieldEst').checked;
+  const priceYen = priceMan * 10000;
+
+  document.getElementById('simYieldVal').textContent = yieldVal.toFixed(1);
+  document.getElementById('simWalkVal').textContent = walkVal;
+  document.getElementById('simAgeVal').textContent = ageVal;
+  document.getElementById('simPriceVal').textContent = priceMan.toLocaleString();
+
+  const locationScore = calcLocationScore(locGrade, walkVal, lineRank);
+  const yieldScore = calcYieldScore(yieldVal, yieldEstimated);
+  const loanRes = calcLoanScore(structure, ageVal);
+  const riskScore = calcRiskScore(redev, hazardHigh);
+  const stagnationScore = 0;
+  const total = locationScore + yieldScore + loanRes.score + stagnationScore + riskScore;
+
+  const baseRank = assignRank(total);
+  const guardRes = applyGuards({
+    rank: baseRank,
+    locationScore, loanScore: loanRes.score, yieldScore,
+    remaining: loanRes.remaining, price: priceYen,
+    structureEstimated,
+  });
+  const finalRank = guardRes.rank;
+
+  document.getElementById('simScore').textContent = total;
+  const rankBadge = document.getElementById('simRank');
+  rankBadge.className = 'rank-badge rank-' + finalRank;
+  rankBadge.textContent = finalRank;
+
+  if (lastRank !== null && lastRank !== finalRank) {
+    rankBadge.classList.add('flash');
+    setTimeout(() => rankBadge.classList.remove('flash'), 250);
+  }
+  lastRank = finalRank;
+
+  const breakdown = [
+    { label: '立地', val: locationScore, max: 30, color: 'bg-primary' },
+    { label: '収益', val: yieldScore, max: 30, color: 'bg-primaryLight' },
+    { label: '融資', val: loanRes.score, max: 20, color: 'bg-accentSilver' },
+    { label: '滞留', val: stagnationScore, max: 10, color: 'bg-slate-400' },
+    { label: 'リスク', val: riskScore, max: 10, color: 'bg-accentWarm' },
+  ];
+  document.getElementById('simBreakdown').innerHTML = breakdown.map(b => `
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-textMuted">${b.label}</span>
+        <span class="num text-xs font-semibold">${b.val} / ${b.max}</span>
+      </div>
+      <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div class="h-full ${b.color} transition-all duration-300" style="width:${(b.val / b.max) * 100}%"></div>
+      </div>
+    </div>
+  `).join('');
+
+  let guardHtml = `<div class="text-textMuted">残存耐用年数: <span class="num font-semibold text-text1">${loanRes.remaining}年</span></div>`;
+  if (guardRes.reason) {
+    guardHtml += `<div class="text-warning"><span class="font-semibold">ガード適用:</span> ${guardRes.reason}</div>`;
+  } else if (finalRank === 'S') {
+    guardHtml += `<div class="text-success font-semibold">Sランク全条件クリア</div>`;
+  }
+  document.getElementById('simGuards').innerHTML = guardHtml;
+}
+
+['simYield', 'simWalk', 'simAge', 'simPrice'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcSim);
+});
+['simLocation', 'simLine', 'simStructure', 'simRedevelopment', 'simHazard', 'simStructEst', 'simYieldEst'].forEach(id => {
+  document.getElementById(id).addEventListener('change', recalcSim);
+});
+
+// ========== Axis cards expansion ==========
+document.querySelectorAll('.axis-card').forEach(card => {
+  card.addEventListener('click', () => toggleAxis(card));
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAxis(card); }
+  });
+});
+function toggleAxis(card) {
+  const axis = card.dataset.axis;
+  const container = document.getElementById('axisDetailContainer');
+  const currentlyOpen = card.getAttribute('aria-expanded') === 'true';
+
+  document.querySelectorAll('.axis-card').forEach(c => {
+    c.setAttribute('aria-expanded', 'false');
+    c.classList.remove('expanded');
+  });
+  container.innerHTML = '';
+
+  if (!currentlyOpen) {
+    card.setAttribute('aria-expanded', 'true');
+    card.classList.add('expanded');
+    const detail = AXIS_DETAILS[axis];
+    if (detail) {
+      container.innerHTML = `
+        <div id="detail-${axis}" class="bg-white border border-border1 rounded-lg p-6 fade-in shadow-sm">
+          <h4 class="text-base font-bold mb-2">${detail.title}</h4>
+          <p class="text-sm text-text1 mb-4 leading-relaxed">${detail.body}</p>
+          <table class="w-full text-sm">
+            <tbody>
+              ${detail.table.map(([k, v]) => `<tr class="border-b border-border1 last:border-0"><td class="py-2 text-text1">${k}</td><td class="py-2 text-right num font-semibold text-primary">${v}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+  }
+}
+
+// ========== Persona judgment (simplified MUST checking) ==========
+
+function getYieldValue(p) {
+  if (p.yieldGross !== null && p.yieldGross !== undefined) return p.yieldGross;
+  if (p.yieldEstimated !== null && p.yieldEstimated !== undefined) return p.yieldEstimated;
+  return null;
+}
+
+const PERSONA_FILTERS = {
+  income: (p) => {
+    const y = getYieldValue(p);
+    if (y === null || y < 5) return false;
+    if (p.yieldMedianInArea === null || y < p.yieldMedianInArea) return false;
+    if (p.remainingDurableYears === null || p.remainingDurableYears < 10) return false;
+    const allowed = ['区分マンション', '投資用マンション', '中古マンション', '新築マンション', '一棟売りアパート', '一棟売りマンション'];
+    return allowed.includes(p.propertyType);
+  },
+  loan_strategy: (p) => {
+    const allowedStruct = ['RC', 'SRC', '鉄骨S', 'S造', '鉄骨'];
+    if (!allowedStruct.includes(p.structure)) return false;
+    if (p.remainingDurableYears === null || p.remainingDurableYears < 15) return false;
+    if (!p.city || (!p.city.includes('福岡市') && !p.city.includes('北九州市'))) return false;
+    if (!p.builtYear || p.builtYear < 1982) return false;
+    if (!p.price || p.price < 30000000) return false;
+    return true;
+  },
+  capital_gain: (p) => {
+    if (p.city !== '福岡市中央区' && p.city !== '福岡市博多区') return false;
+    const allowed = ['区分マンション', '投資用マンション', '中古マンション', '新築マンション'];
+    if (!allowed.includes(p.propertyType)) return false;
+    if (!p.builtYear || p.builtYear < 1982) return false;
+    if (!p.pricePerSqmMedian || !p.area || !p.price) return false;
+    const medianTotal = p.pricePerSqmMedian * p.area;
+    if (p.price > medianTotal * 0.9) return false;
+    return true;
+  },
+  location: (p) => {
+    const okGrade = ['S', 'A'];
+    if (!okGrade.includes(p.locationGrade)) return false;
+    if (p.walkMinutes === null || p.walkMinutes > 10) return false;
+    const okLine = ['S', 'A'];
+    if (!okLine.includes(p.lineRank)) return false;
+    if (!p.nearestStation) return false;
+    return true;
+  },
+  renovation: (p) => {
+    if (!p.price || p.price > 10000000) return false;
+    const allowed = ['戸建', '戸建賃貸', '中古タウンハウス', '一棟売りアパート', '店舗付き住宅'];
+    if (!allowed.includes(p.propertyType)) return false;
+    if (!p.builtYear || p.builtYear < 1982) return false;
+    if (!p.city) return false;
+    const okCity = ['福岡市', '糟屋郡', '大野城', '春日', '太宰府', '那珂川'];
+    if (!okCity.some(s => p.city.includes(s))) return false;
+    return true;
+  },
+};
+
+// ========== Data fetch & rendering ==========
+
+let ALL_PROPS = [];
+let SOURCE_COUNTS = {};
+
+async function loadData() {
+  try {
+    const res = await fetch('data/properties.json');
+    const data = await res.json();
+    ALL_PROPS = data.properties || [];
+
+    SOURCE_COUNTS = ALL_PROPS.reduce((acc, p) => {
+      acc[p.sourceName] = (acc[p.sourceName] || 0) + 1;
+      return acc;
+    }, {});
+
+    renderHero();
+    renderSourceBars();
+    renderSrankTop3();
+    renderPremiumPie();
+    renderPersona('income');
+  } catch (e) {
+    console.error('Failed to load properties.json', e);
+    document.getElementById('personaContent').innerHTML = '<div class="text-warning text-sm">データの読み込みに失敗しました。サーバーが起動しているか確認してください。</div>';
+  }
+}
+
+function animateNumber(el, target, duration = 800) {
+  const start = parseInt(el.textContent.replace(/,/g, '')) || 0;
+  const diff = target - start;
+  const startTime = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const cur = Math.round(start + diff * eased);
+    el.textContent = cur.toLocaleString();
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderHero() {
+  // Update KPI: actual numbers from data
+  const total = ALL_PROPS.length;
+  const sCount = ALL_PROPS.filter(p => p.dealRank === 'S').length;
+  const premium = ALL_PROPS.filter(p => (p.personaMatches || []).length >= 3);
+  const homesInPremium = premium.filter(p => p.sourceName === "HOME'S").length;
+  const homesShare = premium.length > 0 ? Math.round(homesInPremium / premium.length * 100) : 0;
+
+  // observer kicks in when hero is visible
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        animateNumber(document.getElementById('heroTotal'), total);
+        animateNumber(document.getElementById('kpiTotal'), total);
+        animateNumber(document.getElementById('kpiSrank'), sCount);
+        animateNumber(document.getElementById('kpiPremium'), premium.length);
+        animateNumber(document.getElementById('kpiHomesShare'), homesShare);
+        obs.disconnect();
+      }
+    });
+  }, { threshold: 0.1 });
+  obs.observe(document.getElementById('kpiTotal'));
+}
+
+function renderSourceBars() {
+  const total = ALL_PROPS.length;
+  const sources = [
+    { name: "HOME'S", count: SOURCE_COUNTS["HOME'S"] || 0, color: 'bg-orange-500', desc: '実利回り掲載・投資物件特化（toushi.homes.co.jp）。Sランク唯一の供給源。' },
+    { name: 'SUUMO', count: SOURCE_COUNTS['SUUMO'] || 0, color: 'bg-primary', desc: '中古マンション最大手。利回り未掲載のためエリア中央値で推計補完。' },
+    { name: 'ふれんず', count: SOURCE_COUNTS['ふれんず'] || 0, color: 'bg-success', desc: '福岡県不動産業協同組合（公式 API）。地場業者の在庫を網羅。' },
+  ];
+  document.getElementById('sourceBars').innerHTML = sources.map(s => {
+    const pct = total > 0 ? (s.count / total * 100) : 0;
+    return `
+      <div>
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div class="font-semibold text-base">${s.name}</div>
+          <div class="num text-sm text-textMuted">${s.count.toLocaleString()}件 / ${pct.toFixed(1)}%</div>
+        </div>
+        <div class="h-3 bg-white border border-border1 rounded-full overflow-hidden mb-2">
+          <div class="h-full ${s.color} source-bar" style="width:${pct}%" role="progressbar" aria-valuenow="${pct.toFixed(1)}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="text-xs text-textMuted">${s.desc}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSrankTop3() {
+  const top3 = ALL_PROPS
+    .filter(p => p.dealRank === 'S')
+    .sort((a, b) => (b.dealScore || 0) - (a.dealScore || 0))
+    .slice(0, 3);
+
+  const container = document.getElementById('srankTop3');
+  if (top3.length === 0) {
+    container.innerHTML = '<div class="text-textMuted text-sm">Sランク物件がありません</div>';
+    return;
+  }
+
+  container.innerHTML = top3.map(p => {
+    const priceMan = p.price ? Math.round(p.price / 10000).toLocaleString() : '—';
+    const yieldStr = p.yieldGross !== null ? p.yieldGross.toFixed(2) + '%' : '—';
+    const matches = (p.personaMatches || []).length;
+    return `
+      <a href="${p.sourceUrl}" target="_blank" rel="noopener noreferrer" class="block bg-white border border-border1 rounded-lg p-4 hover:shadow-md transition-all focus-ring">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="rank-badge rank-S flex-shrink-0">S</span>
+            <span class="num text-sm font-bold text-textMuted">${p.dealScore}</span>
+            <span class="text-xs text-textMuted truncate">${p.sourceName}</span>
+          </div>
+          ${matches >= 2 ? `<span class="text-[10px] bg-amber-100 text-accentWarm font-bold px-2 py-0.5 rounded">${matches}ペルソナ</span>` : ''}
+        </div>
+        <div class="font-semibold text-sm mb-1 line-clamp-1">${p.name || '物件名なし'}</div>
+        <div class="text-xs text-textMuted mb-2">${p.city || ''} / ${p.propertyType || ''}</div>
+        <div class="flex items-center gap-3 text-xs">
+          <span class="num"><strong class="text-text1">${priceMan}</strong>万円</span>
+          <span class="num">利回 <strong class="text-text1">${yieldStr}</strong></span>
+          ${p.age !== null ? `<span class="num">築 <strong class="text-text1">${p.age}</strong>年</span>` : ''}
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+function renderPremiumPie() {
+  const premium = ALL_PROPS.filter(p => (p.personaMatches || []).length >= 3);
+  const counts = premium.reduce((acc, p) => {
+    acc[p.sourceName] = (acc[p.sourceName] || 0) + 1;
+    return acc;
+  }, {});
+
+  const total = premium.length;
+  const sources = [
+    { name: 'SUUMO', count: counts['SUUMO'] || 0, color: '#1e40af' },
+    { name: 'ふれんず', count: counts['ふれんず'] || 0, color: '#15803d' },
+    { name: "HOME'S", count: counts["HOME'S"] || 0, color: '#f97316' },
+  ];
+
+  // Generate SVG pie
+  let cumulativeAngle = -90; // start at top
+  const cx = 100, cy = 100, r = 80;
+  const svg = document.getElementById('premiumPie');
+  svg.innerHTML = '';
+
+  if (total === 0) {
+    svg.innerHTML = '<text x="100" y="100" text-anchor="middle" fill="#64748b" font-size="14">データなし</text>';
+  } else {
+    sources.forEach(s => {
+      if (s.count === 0) return;
+      const angle = (s.count / total) * 360;
+      const endAngle = cumulativeAngle + angle;
+      const x1 = cx + r * Math.cos(cumulativeAngle * Math.PI / 180);
+      const y1 = cy + r * Math.sin(cumulativeAngle * Math.PI / 180);
+      const x2 = cx + r * Math.cos(endAngle * Math.PI / 180);
+      const y2 = cy + r * Math.sin(endAngle * Math.PI / 180);
+      const largeArc = angle > 180 ? 1 : 0;
+      const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      svg.innerHTML += `<path d="${path}" fill="${s.color}" stroke="#fff" stroke-width="2"><title>${s.name}: ${s.count}件</title></path>`;
+      cumulativeAngle = endAngle;
+    });
+    svg.innerHTML += `<text x="100" y="95" text-anchor="middle" font-size="22" font-weight="700" fill="#1e293b" class="num">${total}</text>`;
+    svg.innerHTML += `<text x="100" y="115" text-anchor="middle" font-size="11" fill="#64748b">プレミアム</text>`;
+  }
+
+  document.getElementById('premiumPieLegend').innerHTML = sources.map(s => {
+    const pct = total > 0 ? (s.count / total * 100).toFixed(1) : '0.0';
+    return `
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm" style="background:${s.color}"></span><span>${s.name}</span></div>
+        <div class="num text-textMuted">${s.count}件 (${pct}%)</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderPersona(personaId) {
+  // Update tab states
+  document.querySelectorAll('.persona-tab').forEach(t => {
+    const isSelected = t.dataset.persona === personaId;
+    t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+  });
+
+  const p = PERSONAS[personaId];
+  const filterFn = PERSONA_FILTERS[personaId];
+
+  // Use personaMatches from data if available, fallback to JS filter
+  let matched = ALL_PROPS.filter(prop => (prop.personaMatches || []).includes(personaId));
+  if (matched.length === 0) {
+    matched = ALL_PROPS.filter(filterFn);
+  }
+  const matchCount = matched.length;
+
+  // Top 3 samples by personaStars (or dealScore)
+  const samples = matched
+    .sort((a, b) => {
+      const sa = (a.personaStars || {})[personaId] || 0;
+      const sb = (b.personaStars || {})[personaId] || 0;
+      if (sb !== sa) return sb - sa;
+      return (b.dealScore || 0) - (a.dealScore || 0);
+    })
+    .slice(0, 3);
+
+  const total = ALL_PROPS.length;
+  const matchPct = total > 0 ? (matchCount / total * 100).toFixed(1) : '0.0';
+
+  document.getElementById('personaContent').innerHTML = `
+    <div class="grid lg:grid-cols-3 gap-8 fade-in">
+      <div class="lg:col-span-1">
+        <h3 class="text-xl font-bold mb-2">${p.name}</h3>
+        <p class="text-sm text-textMuted mb-5 leading-relaxed">${p.tagline}</p>
+        <div class="text-xs font-bold text-textMuted uppercase tracking-wider mb-2">MUST 条件</div>
+        <ul class="space-y-2 mb-6">
+          ${p.must.map(m => `<li class="text-sm flex gap-2"><svg class="w-4 h-4 text-success flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>${m}</span></li>`).join('')}
+        </ul>
+        <div class="bg-white border border-border1 rounded-lg p-4">
+          <div class="text-xs text-textMuted mb-1">マッチ件数</div>
+          <div class="num text-3xl font-bold text-primary">${matchCount.toLocaleString()}</div>
+          <div class="text-xs text-textMuted">${matchPct}% / 全${total.toLocaleString()}件</div>
+          <div class="h-2 bg-slate-100 rounded-full overflow-hidden mt-3">
+            <div class="h-full bg-primary source-bar" style="width:${Math.min(100, matchPct)}%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="lg:col-span-2">
+        <div class="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">典型物件サンプル（上位3件）</div>
+        <div class="grid sm:grid-cols-3 gap-3">
+          ${samples.length === 0 ? '<div class="col-span-3 text-textMuted text-sm">マッチ物件がありません</div>' : samples.map(s => {
+            const priceMan = s.price ? Math.round(s.price / 10000).toLocaleString() : '—';
+            const yieldStr = (s.yieldGross !== null) ? s.yieldGross.toFixed(2) + '%'
+              : (s.yieldEstimated !== null && s.yieldEstimated !== undefined) ? s.yieldEstimated.toFixed(2) + '%（推計）' : '—';
+            const stars = (s.personaStars || {})[personaId] || 0;
+            return `
+              <a href="${s.sourceUrl}" target="_blank" rel="noopener noreferrer" class="block bg-white border border-border1 rounded-lg p-3 hover:shadow-md transition-all focus-ring">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="rank-badge rank-${s.dealRank || 'NA'}">${s.dealRank || 'N/A'}</span>
+                  <span class="text-xs text-accentWarm font-bold">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</span>
+                </div>
+                <div class="font-semibold text-xs mb-1 line-clamp-2">${s.name || '物件名なし'}</div>
+                <div class="text-[11px] text-textMuted mb-2">${s.city || ''}<br>${s.sourceName}</div>
+                <div class="text-[11px] num"><strong>${priceMan}</strong>万 / 利回 ${yieldStr}</div>
+              </a>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+document.querySelectorAll('.persona-tab').forEach(tab => {
+  tab.addEventListener('click', () => renderPersona(tab.dataset.persona));
+  tab.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); renderPersona(tab.dataset.persona); }
+  });
+});
+
+// ========== Init ==========
+recalcSim();
+loadData();
+</script>
+
+</body>
+</html>
