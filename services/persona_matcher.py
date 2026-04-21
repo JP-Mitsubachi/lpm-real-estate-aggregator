@@ -1,4 +1,4 @@
-"""Investor persona matching (v2.6.1, PGE Round 2 修正反映).
+"""Investor persona matching (v2.6.2, PGE Round 3 修正反映).
 
 Source: company/research/topics/2026-04-19-real-estate-investor-personas-brief.md §5
 Config: config/personas.yaml
@@ -22,13 +22,20 @@ Config: config/personas.yaml
     - MUST 全クリア → 基本 ★3
     - PREFER 加点 1個ごとに +1（最大 ★5）
     - estimated 利回り使用時 (yieldSourceConfidence != "actual") は -1（最低 ★1）
-    - structureEstimated=True 物件は loan_strategy のみ追加 -1（修正3、最低 ★1）
+    - structureEstimated=True 物件は common.estimated_structure_penalty_personas に
+      含まれるペルソナのみ追加 -1（v2.6.2 で income/capital_gain/location へ展開済み、
+      最低 ★1）
     - NEVER 該当があれば一律マッチ無し
 
 Round 2 修正:
     - 修正2: location MUST から min_yield 撤廃。PREFER bonus_yield_min に格下げ。
     - 修正3: loan_strategy で structureEstimated=True なら personaStars -1。
     - 修正4: min_built_year 1981→1982（YAML 側）。コード側は YAML の値をそのまま使用。
+
+Round 3 (v2.6.2) 修正:
+    - 修正A: renovation.must.allowed_property_types に命名揺れ追加（YAML 側のみ）。
+    - 修正B: estimated_structure_penalty_personas を income/capital_gain/location
+              へ展開（YAML 側のみ、コード側はホワイトリスト参照で動的追従）。
 """
 from __future__ import annotations
 
@@ -499,6 +506,8 @@ def _calc_stars(
         - estimated 利回り使用時 → -1
         - structureEstimated=True かつ persona_id が
           common.estimated_structure_penalty_personas に含まれる場合 → 追加 -1
+          （v2.6.2 以降、対象は loan_strategy / income / capital_gain / location。
+           renovation は structure 判定しないため対象外）
     最低/最大は common.min_stars / common.max_stars でクリップ。
     """
     base = int(common.get("base_stars", 3))

@@ -602,9 +602,30 @@ def test_loan_strategy_estimated_structure_reduces_stars_by_one():
     assert bumped_stars["loan_strategy"] >= 1  # 最低 1
 
 
-def test_estimated_structure_does_not_affect_other_personas():
-    """修正3: structureEstimated 補正は loan_strategy のみ。他ペルソナには適用しない."""
+def test_estimated_structure_does_not_affect_renovation():
+    """修正B (v2.6.2): structureEstimated 補正は renovation 以外に適用。
+
+    renovation は structure を判定に使わないため補正対象外。
+    income/capital_gain/location/loan_strategy は対象で -1 が入る。
+    """
+    base = _make_renovation_property(
+        age=30, area=50.0, firstSeenAt=None,
+        structureEstimated=False,
+    )
+    _, base_stars = match_personas(base)
+
+    bumped = _make_renovation_property(
+        age=30, area=50.0, firstSeenAt=None,
+        structureEstimated=True,
+    )
+    _, bumped_stars = match_personas(bumped)
+    assert bumped_stars["renovation"] == base_stars["renovation"]
+
+
+def test_income_estimated_structure_reduces_stars_by_one():
+    """修正B (v2.6.2): income で structureEstimated=True なら -1."""
     base = _make_income_property(
+        # PREFER 全外しで base ★3、structureEstimated=True なら ★2
         layout="3LDK", age=30, locationGrade="C", yieldDeviation=0.0,
         structureEstimated=False,
     )
@@ -615,7 +636,62 @@ def test_estimated_structure_does_not_affect_other_personas():
         structureEstimated=True,
     )
     _, bumped_stars = match_personas(bumped)
-    assert bumped_stars["income"] == base_stars["income"]
+    assert bumped_stars["income"] == base_stars["income"] - 1
+    assert bumped_stars["income"] >= 1
+
+
+def test_capital_gain_estimated_structure_reduces_stars_by_one():
+    """修正B (v2.6.2): capital_gain で structureEstimated=True なら -1."""
+    base = _make_capital_gain_property(
+        # PREFER 1個だけ（walkMinutes=5）で base ★4、structureEstimated=True で ★3
+        inRedevelopmentZone=False, lineRank="C", firstSeenAt=None,
+        walkMinutes=5,
+        structureEstimated=False,
+    )
+    _, base_stars = match_personas(base)
+
+    bumped = _make_capital_gain_property(
+        inRedevelopmentZone=False, lineRank="C", firstSeenAt=None,
+        walkMinutes=5,
+        structureEstimated=True,
+    )
+    _, bumped_stars = match_personas(bumped)
+    assert bumped_stars["capital_gain"] == base_stars["capital_gain"] - 1
+    assert bumped_stars["capital_gain"] >= 1
+
+
+def test_location_estimated_structure_reduces_stars_by_one():
+    """修正B (v2.6.2): location で structureEstimated=True なら -1."""
+    base = _make_location_property(
+        # PREFER 全外しで base ★3、structureEstimated=True で ★2
+        locationGrade="A", walkMinutes=8, inRedevelopmentZone=False,
+        layout="2LDK", hazardFlag="medium",
+        yieldGross=None, yieldEstimated=None, yieldSourceConfidence="none",
+        structureEstimated=False,
+    )
+    _, base_stars = match_personas(base)
+
+    bumped = _make_location_property(
+        locationGrade="A", walkMinutes=8, inRedevelopmentZone=False,
+        layout="2LDK", hazardFlag="medium",
+        yieldGross=None, yieldEstimated=None, yieldSourceConfidence="none",
+        structureEstimated=True,
+    )
+    _, bumped_stars = match_personas(bumped)
+    assert bumped_stars["location"] == base_stars["location"] - 1
+    assert bumped_stars["location"] >= 1
+
+
+def test_renovation_not_in_structure_penalty_whitelist():
+    """修正B (v2.6.2): YAML ホワイトリストに renovation が含まれていないことを確認."""
+    from services.persona_matcher import get_persona_config, reset_persona_cache
+    reset_persona_cache()
+    cfg = get_persona_config()
+    whitelist = cfg["common"].get("estimated_structure_penalty_personas") or []
+    assert "renovation" not in whitelist
+    # 他の4ペルソナは含まれる
+    for pid in ("loan_strategy", "income", "capital_gain", "location"):
+        assert pid in whitelist
 
 
 def test_loan_strategy_estimated_structure_floor_at_one():

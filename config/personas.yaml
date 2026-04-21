@@ -2,13 +2,15 @@
 # Source: company/research/topics/2026-04-19-real-estate-investor-personas-brief.md §5
 # Generated: 2026-04-19 (PGE Generator)
 # Updated:   2026-04-19 (PGE Round 2 — 4修正反映)
+# Updated:   2026-04-20 (PGE Round 3 — v2.6.2 パッチ)
 #
 # 5ペルソナ（節税型は倫理的理由により除外。ブリーフ §5 の 1〜5 のみ）。
 # MUST/PREFER/NEVER 条件の閾値はすべてここに集約する。
 # - MUST 全クリアで personaStars=3 (★3)
 # - PREFER 加点 1個ごとに +1（最大 ★5）
 # - estimated 利回り（yieldSourceConfidence != "actual"）使用時は -1（信頼度補正）
-# - structureEstimated=True の場合 loan_strategy のみ追加で -1（最低 ★1）
+# - structureEstimated=True の場合、estimated_structure_penalty_personas に含まれる
+#   ペルソナのみ追加で -1（最低 ★1）
 # - NEVER 該当があれば一律 unmatched（personaStars に出ない）
 #
 # Round 2 修正:
@@ -17,9 +19,16 @@
 #   - 修正3: loan_strategy の structureEstimated 補正を common セクションに追加
 #   - 修正4: min_built_year を 1981 → 1982 に bump（1981/1-5月築の旧耐震を排除）
 #
+# Round 3 (v2.6.2) 修正:
+#   - 修正A: renovation.must.allowed_property_types に実データの命名揺れを追加
+#            （HOME'S/ふれんずの生データで戸建/タウンハウス/店舗系の揺れあり）
+#   - 修正B: estimated_structure_penalty_personas を loan_strategy のみから
+#            income / capital_gain / location にも展開（構造推定物件の信頼度低）
+#            renovation は structure 判定を行わないため対象外
+#
 # 値変更時は services/persona_matcher.py のロジックと整合させること。
 
-version: "2.6.1"
+version: "2.6.2"
 
 # ============================================================
 # 1. インカムゲイン重視型
@@ -184,12 +193,24 @@ renovation:
     # 再生後にキャッシュフロー化する価格帯
     max_price: 10000000
     # 再生可能な物件タイプ（区分マンションは除外）
+    # 修正A (v2.6.2): HOME'S/ふれんずの実データで propertyType に命名揺れあり。
+    #                 戸建系・タウンハウス系・店舗系・事業用の再生候補を網羅する。
     allowed_property_types:
+      # 既存5種類（そのまま保持）
       - "戸建"
       - "戸建賃貸"
       - "中古タウンハウス"
       - "一棟売りアパート"
       - "店舗付き住宅"
+      # 命名揺れ追加（v2.6.2）
+      - "一戸建て"
+      - "中古戸建"
+      - "中古戸建て"
+      - "新築戸建"
+      - "新築戸建て"
+      - "タウンハウス"
+      - "売り店舗・事務所"
+      - "売り工場・倉庫・その他"
     # 新耐震（1981/6 以降）— 1982 にbumpして 1981/1-5月築の旧耐震を確実に排除
     min_built_year: 1982
     # 福岡市内 + 近郊（リフォーム業者アクセス & 賃貸需要）
@@ -222,15 +243,23 @@ renovation:
 # yieldSourceConfidence != "actual" の estimated 物件は personaStars を -1
 # （actual の HOME'S 物件と差別化）
 #
-# 修正3: structureEstimated=True (構造推定物件) は loan_strategy のみ追加で -1
+# 修正3 (v2.6.1): structureEstimated=True (構造推定物件) は loan_strategy のみ追加で -1
 #   理由: 融資戦略型は構造（RC/SRC/S）が法定耐用年数 = 融資期間に直結。
 #         推定構造は銀行融資の基礎資料として使えないため信頼度を下げる。
 #   適用対象は estimated_structure_penalty_personas にホワイトリスト指定。
+# 修正B (v2.6.2): 他ペルソナにも展開。
+#   income / capital_gain / location も構造前提の判定（残存耐用年数・出口評価・
+#   担保評価）を使うため、構造推定の信頼度低下は star に反映させる。
+#   renovation は structure を判定に使わないため対象外。
 common:
   estimated_yield_star_penalty: 1
   estimated_structure_star_penalty: 1
   estimated_structure_penalty_personas:
-    - "loan_strategy"
+    - "loan_strategy"  # v2.6.1 既存（融資期間・法定耐用年数の基礎）
+    - "income"         # v2.6.2 追加（残存耐用年数 MUST に直結）
+    - "capital_gain"   # v2.6.2 追加（築古木造 NEVER と出口評価に構造前提）
+    - "location"       # v2.6.2 追加（長期保有の躯体信頼性）
+    # renovation は structure 判定しないので対象外
   min_stars: 1   # 補正後の下限
   max_stars: 5
   base_stars: 3  # MUST 全クリアの基本点
