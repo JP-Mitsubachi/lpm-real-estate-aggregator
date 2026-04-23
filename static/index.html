@@ -186,6 +186,112 @@
   .persona-stars-row .pers-stars.pers-current {
     background: #fef3c7; padding: 0 5px; border-radius: 2px;
   }
+
+  /* ========== v2.7 UI/UX 改善（3機能統合） ========== */
+
+  /* --- Phase 2: クイックプリセット + 保存済み条件 --- */
+  .v27-preset-section { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e5e7eb; }
+  .v27-preset-label { display: block; font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 6px; }
+  .v27-preset-row { display: flex; flex-wrap: wrap; gap: 5px; }
+  .v27-preset-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; line-height: 1.4;
+    border: 1px solid #d1d5db; background: #ffffff; color: #374151;
+    cursor: pointer; user-select: none;
+    transition: all 0.15s ease;
+  }
+  .v27-preset-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
+  .v27-preset-btn.active {
+    background: #1e40af; color: #ffffff; border-color: #1e40af;
+  }
+  .v27-preset-btn svg { width: 12px; height: 12px; }
+  .v27-saved-chip {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 3px 4px 3px 8px; border-radius: 10px;
+    font-size: 11px; line-height: 1.4;
+    background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;
+    cursor: pointer; user-select: none;
+  }
+  .v27-saved-chip:hover { background: #dbeafe; }
+  .v27-saved-chip button {
+    width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px; color: #64748b; background: transparent; border: 0; cursor: pointer;
+    font-size: 13px; line-height: 1;
+  }
+  .v27-saved-chip button:hover { background: #bfdbfe; color: #1e40af; }
+  @media (max-width: 767px) {
+    .v27-preset-btn { min-height: 36px; padding: 6px 10px; }
+    .v27-saved-chip { min-height: 32px; padding: 4px 6px 4px 10px; }
+  }
+
+  /* --- Phase 1: テーブルビュー / カードビュー切替 --- */
+  .v27-view-toggle { display: inline-flex; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; }
+  .v27-view-toggle button {
+    padding: 5px 8px; border: 0; background: #ffffff; color: #6b7280;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+    font-size: 11px; font-weight: 600; line-height: 1;
+  }
+  .v27-view-toggle button:hover { background: #f3f4f6; }
+  .v27-view-toggle button.active { background: #1e40af; color: #ffffff; }
+  .v27-view-toggle button.active:hover { background: #1e3a8a; }
+  .v27-view-toggle button svg { width: 14px; height: 14px; }
+  @media (max-width: 639px) { .v27-view-toggle { display: none !important; } }
+
+  .v27-table-wrap { width: 100%; overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; }
+  .v27-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .v27-table thead th {
+    position: sticky; top: 0; background: #f8fafc;
+    padding: 10px 8px; text-align: left; font-weight: 600; color: #475569;
+    border-bottom: 1px solid #e5e7eb; white-space: nowrap;
+    font-size: 11px; letter-spacing: 0.02em;
+  }
+  .v27-table thead th.sortable { cursor: pointer; user-select: none; }
+  .v27-table thead th.sortable:hover { background: #f1f5f9; color: #1e40af; }
+  .v27-table thead th .sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.5; }
+  .v27-table thead th.sorted .sort-arrow { opacity: 1; color: #1e40af; }
+  .v27-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer; transition: background-color 0.15s ease;
+  }
+  .v27-table tbody tr:hover { background: #f8fafc; }
+  .v27-table tbody td {
+    padding: 8px; vertical-align: middle; color: #1e293b;
+    font-variant-numeric: tabular-nums;
+  }
+  .v27-table .col-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1e293b; font-weight: 500; }
+  .v27-table .col-price { text-align: right; font-weight: 600; }
+  .v27-table .col-yield { text-align: right; }
+  .v27-table .col-age, .v27-table .col-walk, .v27-table .col-score { text-align: right; }
+  .v27-table .col-fav { text-align: center; }
+  .v27-table .col-fav button { background: transparent; border: 0; cursor: pointer; padding: 2px; color: #d1d5db; }
+  .v27-table .col-fav button.on { color: #eab308; }
+  .v27-table .col-fav button svg { width: 16px; height: 16px; }
+  .v27-table .col-link a { color: #1e40af; display: inline-flex; padding: 2px; }
+  .v27-table .col-link svg { width: 14px; height: 14px; }
+
+  /* --- Phase 3: ペルソナレーダーチャート --- */
+  .v27-radar-wrap {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 10px; padding: 8px 10px;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  }
+  .v27-radar-svg { flex-shrink: 0; }
+  .v27-radar-summary { flex: 1; min-width: 0; font-size: 11px; color: #475569; line-height: 1.5; }
+  .v27-radar-summary strong { color: #1e293b; font-weight: 600; }
+  .v27-radar-summary .v27-radar-top { color: #b45309; font-weight: 600; }
+  .v27-radar-axis-label { font-size: 9px; fill: #64748b; transition: font-weight 0.15s, fill 0.15s; }
+  .v27-radar:hover .v27-radar-axis-label { fill: #475569; }
+  .v27-radar-grid { stroke: #e2e8f0; fill: none; }
+  .v27-radar-shape { fill: #1e40af; fill-opacity: 0.18; stroke: #1e40af; stroke-width: 2; stroke-linejoin: round; }
+  .v27-radar-center { font-size: 14px; font-weight: 700; fill: #1e40af; text-anchor: middle; dominant-baseline: middle; }
+  .v27-radar-mini { flex-shrink: 0; }
+  .v27-radar-mini .v27-radar-shape { stroke-width: 1.2; fill-opacity: 0.22; }
+  .v27-radar-mini .v27-radar-grid { stroke-width: 0.6; }
+  @media (prefers-reduced-motion: reduce) {
+    .v27-preset-btn, .v27-view-toggle button, .v27-saved-chip,
+    .v27-radar-axis-label { transition: none !important; }
+  }
 </style>
 <script>
 tailwind.config = {
@@ -252,6 +358,29 @@ tailwind.config = {
       <p class="mt-2 text-[11px] leading-relaxed text-gray-500">
         💡 <span class="font-semibold text-gray-600">S ランクは実利回り掲載物件（HOME&#39;S）に限定</span>されます。SUUMO/ふれんずは推計利回りのため最高 A ランクまで。多視点での評価は下の「投資スタイル」をご活用ください。
       </p>
+
+      <!-- v2.7 Phase 2: クイックプリセット + 保存済み条件 -->
+      <div class="v27-preset-section">
+        <label class="v27-preset-label">クイックプリセット</label>
+        <div class="v27-preset-row" id="v27PresetRow">
+          <button type="button" class="v27-preset-btn" data-preset="high_yield" title="利回り 8% 以上で絞り込み">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>高利回り 8%+
+          </button>
+          <button type="button" class="v27-preset-btn" data-preset="redevelopment" title="再開発エリアに絞り込み">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/></svg>再開発エリア
+          </button>
+          <button type="button" class="v27-preset-btn" data-preset="near_station" title="駅徒歩 5 分以内に絞り込み">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><path d="M8 15h.01"/><path d="M16 15h.01"/></svg>駅近5分
+          </button>
+          <button type="button" class="v27-preset-btn" data-preset="premium" title="3 ペルソナ以上マッチのプレミアム物件">
+            <svg fill="currentColor" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>プレミアム
+          </button>
+          <button type="button" id="v27SaveFilterBtn" class="v27-preset-btn" style="margin-left:auto" title="現在の検索条件に名前をつけて保存">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>条件を保存
+          </button>
+        </div>
+        <div class="v27-preset-row" id="v27SavedChips" style="margin-top:6px;"></div>
+      </div>
     </div>
 
     <!-- 1. Area -->
@@ -516,10 +645,23 @@ tailwind.config = {
             <option value="dateDesc">掲載日（新しい順）</option>
             <option value="dateAsc">掲載日（古い順）</option>
           </select>
+          <!-- v2.7 Phase 1: ビュー切替トグル（desktop only） -->
+          <div class="v27-view-toggle" role="group" aria-label="表示形式切替">
+            <button type="button" id="v27ViewCard" class="active" aria-pressed="true" title="カード表示">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              <span>カード</span>
+            </button>
+            <button type="button" id="v27ViewTable" aria-pressed="false" title="テーブル表示">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+              <span>テーブル</span>
+            </button>
+          </div>
         </div>
       </div>
       <!-- Card Grid -->
       <div id="cardGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+      <!-- v2.7 Phase 1: Table View -->
+      <div id="v27TableView" class="v27-table-wrap hidden" role="region" aria-label="物件テーブル"></div>
       <!-- Empty state -->
       <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
         <svg class="w-16 h-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/></svg>
@@ -528,9 +670,10 @@ tailwind.config = {
       </div>
     </div>
   </main>
+</div>
 
-  <!-- Legal Footer (NFR-010) -->
-  <footer class="mt-12 border-t border-gray-200 bg-gray-50">
+<!-- Legal Footer (NFR-010): flex コンテナの外に出して全幅表示 -->
+<footer class="mt-12 border-t border-gray-200 bg-gray-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div class="grid md:grid-cols-2 gap-6 text-xs text-gray-600">
         <div>
@@ -558,7 +701,6 @@ tailwind.config = {
       </div>
     </div>
   </footer>
-</div>
 
 <!-- Mobile: Floating Action Buttons -->
 <div class="mobile-fab fixed bottom-4 left-0 right-0 z-50 flex justify-center gap-3 px-4 md:hidden">
@@ -1251,8 +1393,8 @@ function buildCardHTML(p, options) {
       </p>
       <!-- レイヤー3: 根拠開示 -->
       ${dealReasonsHTML(p)}
-      <!-- v2.6: ペルソナ別★評価 -->
-      ${personaStarsHTML(p)}
+      <!-- v2.7 Phase 3: ペルソナ 5軸レーダーチャート（0マッチ時は personaStarsHTML の空文字で何も出ない） -->
+      ${v27RadarHTML(p)}
     </div>
   </a>`;
 }
@@ -1262,17 +1404,28 @@ function renderCards() {
   const grid = document.getElementById('cardGrid');
   const empty = document.getElementById('emptyState');
   const countEl = document.getElementById('resultCount');
+  const tableView = document.getElementById('v27TableView');
 
   countEl.textContent = displayedProperties.length;
 
   if (displayedProperties.length === 0) {
     grid.innerHTML = '';
+    if (tableView) tableView.innerHTML = '';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
 
-  grid.innerHTML = displayedProperties.map(p => buildCardHTML(p)).join('');
+  // v2.7: ビューモードに応じて描画を切替
+  if (v27ViewMode === 'table') {
+    grid.classList.add('hidden');
+    tableView.classList.remove('hidden');
+    v27RenderTable(displayedProperties);
+  } else {
+    grid.classList.remove('hidden');
+    if (tableView) tableView.classList.add('hidden');
+    grid.innerHTML = displayedProperties.map(p => buildCardHTML(p)).join('');
+  }
 }
 
 // ---- Welcome画面: お気に入り表示 (E5) ----
@@ -1369,6 +1522,479 @@ function syncMobileToDesktop() {
   const mChecks = document.querySelectorAll('#mTypeChecks input[type=checkbox]');
   mChecks.forEach((mc, i) => { if (dChecks[i]) dChecks[i].checked = mc.checked; });
 }
+
+// ==========================================================
+// v2.7: UI/UX 改善（3機能統合）
+//   Phase 1: テーブルビュー切替
+//   Phase 2: クイックプリセット + localStorage 保存
+//   Phase 3: ペルソナ 5軸レーダーチャート
+// ==========================================================
+
+// ---- 状態管理 ----
+let v27ViewMode = 'card';        // 'card' | 'table'
+let v27ActivePreset = null;      // null | 'high_yield' | 'redevelopment' | 'near_station' | 'premium'
+let v27TableSort = null;         // { key: string, dir: 'asc'|'desc' } | null
+const V27_STORAGE_KEY = 'l008:savedFilters';
+const V27_SAVE_MAX = 5;
+
+// ---- Phase 3: レーダーチャート（SVG） ----
+const V27_PERSONA_ORDER = ['income', 'loan_strategy', 'capital_gain', 'location', 'renovation'];
+const V27_PERSONA_SHORT = {
+  income: 'インカム',
+  loan_strategy: '融資',
+  capital_gain: 'キャピタル',
+  location: '立地',
+  renovation: '築古',
+};
+
+function v27RadarSVG(stars, size, opts) {
+  // stars: {income:4, loan_strategy:0, ...} または配列 [4,0,3,5,0]
+  // size: カード用 140 / ミニ用 40
+  // opts: { showLabels, interactive, center }
+  opts = opts || {};
+  const padding = opts.showLabels ? 26 : 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = (size / 2) - padding;
+  const axes = V27_PERSONA_ORDER.map((pid, i) => {
+    const angle = (-90 + 72 * i) * Math.PI / 180;
+    return { pid, angle, x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+  });
+
+  // 同心五角形（3段階: 1.67, 3.33, 5.0）
+  let grids = '';
+  [1, 2, 3].forEach(level => {
+    const scale = level / 3;
+    const pts = axes.map(a => {
+      const x = cx + (a.x - cx) * scale;
+      const y = cy + (a.y - cy) * scale;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    grids += `<polygon class="v27-radar-grid" points="${pts}" />`;
+  });
+
+  // 軸線
+  let axisLines = '';
+  axes.forEach(a => {
+    axisLines += `<line class="v27-radar-grid" x1="${cx}" y1="${cy}" x2="${a.x.toFixed(1)}" y2="${a.y.toFixed(1)}" />`;
+  });
+
+  // データ多角形（0-5 を 0-1 正規化）
+  const shape = axes.map(a => {
+    const v = Math.min(5, Math.max(0, (stars[a.pid] || 0))) / 5;
+    const x = cx + (a.x - cx) * v;
+    const y = cy + (a.y - cy) * v;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  // 軸ラベル
+  let labels = '';
+  if (opts.showLabels) {
+    axes.forEach(a => {
+      const lx = cx + Math.cos(a.angle) * (r + 12);
+      const ly = cy + Math.sin(a.angle) * (r + 12);
+      const anchor = Math.abs(lx - cx) < 2 ? 'middle' : (lx > cx ? 'start' : 'end');
+      labels += `<text class="v27-radar-axis-label" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle">${V27_PERSONA_SHORT[a.pid]}</text>`;
+    });
+  }
+
+  const centerText = opts.center != null
+    ? `<text class="v27-radar-center" x="${cx}" y="${cy + 1}">${opts.center}</text>`
+    : '';
+
+  const ariaLabel = 'ペルソナ適合度: ' + V27_PERSONA_ORDER.map(pid => `${V27_PERSONA_SHORT[pid]}★${stars[pid] || 0}`).join(' ');
+
+  return `<svg class="v27-radar ${opts.mini ? 'v27-radar-mini' : ''}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${ariaLabel}">
+    ${grids}${axisLines}
+    <polygon class="v27-radar-shape" points="${shape}" />
+    ${labels}${centerText}
+  </svg>`;
+}
+
+function v27RadarHTML(p) {
+  const stars = p.personaStars || {};
+  const matches = p.personaMatches || [];
+  const total = V27_PERSONA_ORDER.reduce((s, pid) => s + (stars[pid] || 0), 0);
+  if (matches.length === 0 || total === 0) {
+    // 未マッチは既存の personaStarsHTML（空文字を返す）にフォールバック
+    return personaStarsHTML(p);
+  }
+  // 最強ペルソナを summary に表示
+  let bestPid = null; let bestStars = 0;
+  V27_PERSONA_ORDER.forEach(pid => {
+    const n = stars[pid] || 0;
+    if (n > bestStars) { bestStars = n; bestPid = pid; }
+  });
+  const bestLabel = bestPid ? `${V27_PERSONA_SHORT[bestPid]}★${bestStars}` : '';
+  const matchedLabels = matches.map(pid => V27_PERSONA_SHORT[pid] || pid).join(' / ');
+  const size = 140;
+  const svg = v27RadarSVG(stars, size, { showLabels: true });
+  return `<div class="v27-radar-wrap" data-persona-radar="1">
+    ${svg}
+    <div class="v27-radar-summary">
+      <div><strong>適合ペルソナ ${matches.length}/5</strong></div>
+      <div>${matchedLabels}</div>
+      <div class="v27-radar-top">最強: ${bestLabel}</div>
+    </div>
+  </div>`;
+}
+
+// ---- Phase 2: クイックプリセット + 保存済み条件 ----
+
+function v27GetFilterState() {
+  // 現在の UI フィルタ状態を取得
+  const ranks = Array.from(document.querySelectorAll('#rankChecks input:checked')).map(cb => cb.value);
+  const types = Array.from(document.querySelectorAll('#typeChecks input:checked')).map(cb => cb.value);
+  return {
+    rankChecks: ranks,
+    filterArea: document.getElementById('filterArea').value,
+    priceMin: document.getElementById('priceMin').value,
+    priceMax: document.getElementById('priceMax').value,
+    yieldMin: document.getElementById('yieldMin').value,
+    typeChecks: types,
+    filterAge: document.getElementById('filterAge').value,
+    persona: selectedPersona || '',
+    favOnly: document.getElementById('favOnly').checked,
+  };
+}
+
+function v27ApplyFilterState(state) {
+  // 保存された state を UI に反映
+  const s = state || {};
+  // ランクチェック
+  document.querySelectorAll('#rankChecks input').forEach(cb => {
+    cb.checked = Array.isArray(s.rankChecks) ? s.rankChecks.includes(cb.value) : false;
+  });
+  if (document.getElementById('filterArea')) document.getElementById('filterArea').value = s.filterArea || '';
+  if (document.getElementById('priceMin')) document.getElementById('priceMin').value = s.priceMin || '';
+  if (document.getElementById('priceMax')) document.getElementById('priceMax').value = s.priceMax || '';
+  if (document.getElementById('yieldMin')) document.getElementById('yieldMin').value = s.yieldMin || '';
+  // タイプチェック
+  document.querySelectorAll('#typeChecks input').forEach(cb => {
+    cb.checked = Array.isArray(s.typeChecks) ? s.typeChecks.includes(cb.value) : false;
+  });
+  if (document.getElementById('filterAge')) document.getElementById('filterAge').value = s.filterAge || '';
+  if (document.getElementById('favOnly')) document.getElementById('favOnly').checked = !!s.favOnly;
+  // ペルソナ
+  if (s.persona !== undefined) {
+    selectedPersona = s.persona;
+    document.querySelectorAll('#personaSelector .persona-btn').forEach(b => {
+      const isActive = (b.dataset.persona || '') === selectedPersona;
+      b.classList.toggle('persona-btn-active', isActive);
+      if (isActive) b.classList.remove('bg-white','text-gray-700','border-gray-300');
+      else b.classList.add('bg-white','text-gray-700','border-gray-300');
+    });
+  }
+}
+
+function v27ResetFilters() {
+  // デフォルト状態（S/A/B チェック、他は空）に戻す
+  v27ApplyFilterState({
+    rankChecks: ['S', 'A', 'B'],
+    filterArea: '', priceMin: '', priceMax: '', yieldMin: '',
+    typeChecks: [], filterAge: '',
+    persona: '', favOnly: false,
+  });
+}
+
+const V27_PRESETS = {
+  high_yield: {
+    label: '高利回り 8%+',
+    state: { rankChecks: ['S','A','B'], filterArea: '', priceMin: '', priceMax: '',
+             yieldMin: '8', typeChecks: [], filterAge: '', persona: '', favOnly: false },
+  },
+  redevelopment: {
+    label: '再開発エリア',
+    // 再開発エリアは明示的なフィルタ UI が無いので、プレミアム候補に頻出する中央区・博多区 + 高ランクで代替
+    // JS 側で追加条件 inRedevelopmentZone=true を filter 関数で当てる必要があるが、
+    // applyFiltersAndSort は既存シグネチャを変えないため、post-filter で絞る実装にする（下で対応）
+    state: { rankChecks: ['S','A','B'], filterArea: '', priceMin: '', priceMax: '',
+             yieldMin: '', typeChecks: [], filterAge: '', persona: '', favOnly: false },
+    postFilter: p => p.inRedevelopmentZone === true,
+  },
+  near_station: {
+    label: '駅近5分',
+    state: { rankChecks: ['S','A','B'], filterArea: '', priceMin: '', priceMax: '',
+             yieldMin: '', typeChecks: [], filterAge: '', persona: '', favOnly: false },
+    postFilter: p => typeof p.walkMinutes === 'number' && p.walkMinutes > 0 && p.walkMinutes <= 5,
+  },
+  premium: {
+    label: 'プレミアム物件',
+    state: { rankChecks: ['S','A','B','C','D','N/A'], filterArea: '', priceMin: '', priceMax: '',
+             yieldMin: '', typeChecks: [], filterAge: '', persona: '', favOnly: false },
+    postFilter: p => Array.isArray(p.personaMatches) && p.personaMatches.length >= 3,
+  },
+};
+
+function v27ApplyPreset(presetKey) {
+  const preset = V27_PRESETS[presetKey];
+  if (!preset) return;
+  v27ApplyFilterState(preset.state);
+  v27ActivePreset = presetKey;
+  v27UpdatePresetButtons();
+  applyFiltersAndSort();
+}
+
+function v27TogglePreset(presetKey) {
+  if (v27ActivePreset === presetKey) {
+    // OFF: デフォルト状態に戻す
+    v27ActivePreset = null;
+    v27ResetFilters();
+    v27UpdatePresetButtons();
+    applyFiltersAndSort();
+  } else {
+    v27ApplyPreset(presetKey);
+  }
+}
+
+function v27UpdatePresetButtons() {
+  document.querySelectorAll('.v27-preset-btn[data-preset]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === v27ActivePreset);
+  });
+}
+
+// ---- Phase 2: 保存済みフィルタ (localStorage) ----
+function v27LoadSaved() {
+  try {
+    const raw = localStorage.getItem(V27_STORAGE_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    console.warn('v27: localStorage unavailable', e);
+    return [];
+  }
+}
+
+function v27PersistSaved(list) {
+  try {
+    localStorage.setItem(V27_STORAGE_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.warn('v27: localStorage write failed', e);
+  }
+}
+
+function v27SaveCurrentFilter() {
+  const name = prompt('この検索条件の名前を入力してください（例: 博多区6%+区分）');
+  if (!name) return;
+  const trimmed = name.trim().slice(0, 40);
+  if (!trimmed) return;
+  const list = v27LoadSaved();
+  list.unshift({
+    id: 'f_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+    name: trimmed,
+    created: new Date().toISOString(),
+    filters: v27GetFilterState(),
+  });
+  while (list.length > V27_SAVE_MAX) list.pop();  // LRU 古いものから削除
+  v27PersistSaved(list);
+  v27RenderSavedChips();
+}
+
+function v27DeleteSaved(id) {
+  const list = v27LoadSaved().filter(x => x.id !== id);
+  v27PersistSaved(list);
+  v27RenderSavedChips();
+}
+
+function v27RestoreSaved(id) {
+  const entry = v27LoadSaved().find(x => x.id === id);
+  if (!entry) return;
+  // プリセット選択は解除
+  v27ActivePreset = null;
+  v27UpdatePresetButtons();
+  v27ApplyFilterState(entry.filters || {});
+  applyFiltersAndSort();
+}
+
+function v27RenderSavedChips() {
+  const container = document.getElementById('v27SavedChips');
+  if (!container) return;
+  const list = v27LoadSaved();
+  if (list.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = list.map(entry => {
+    const esc = (entry.name || '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+    return `<span class="v27-saved-chip" data-saved-id="${entry.id}" title="クリックで復元">
+      <span class="v27-saved-chip-label">${esc}</span>
+      <button type="button" data-saved-del="${entry.id}" title="削除" aria-label="削除">×</button>
+    </span>`;
+  }).join('');
+}
+
+// ---- Phase 1: テーブルビュー ----
+
+const V27_TABLE_COLUMNS = [
+  { key: 'dealRank', label: 'ランク', sortable: true, cls: 'col-rank' },
+  { key: 'name', label: '物件名', sortable: false, cls: 'col-name' },
+  { key: 'city', label: 'エリア', sortable: false, cls: 'col-city' },
+  { key: 'propertyType', label: '種別', sortable: false, cls: 'col-type' },
+  { key: 'price', label: '価格', sortable: true, cls: 'col-price' },
+  { key: 'yieldValue', label: '利回', sortable: true, cls: 'col-yield' },
+  { key: 'age', label: '築年', sortable: true, cls: 'col-age' },
+  { key: 'walkMinutes', label: '駅徒歩', sortable: true, cls: 'col-walk' },
+  { key: 'persona', label: 'ペルソナ', sortable: false, cls: 'col-persona' },
+  { key: 'dealScore', label: 'スコア', sortable: true, cls: 'col-score' },
+  { key: 'fav', label: '★', sortable: false, cls: 'col-fav' },
+  { key: 'link', label: '', sortable: false, cls: 'col-link' },
+];
+
+const V27_RANK_ORDER = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1, 'N/A': 0 };
+
+function v27SortProps(list, sort) {
+  if (!sort) return list;
+  const { key, dir } = sort;
+  const sign = dir === 'asc' ? 1 : -1;
+  const getVal = (p) => {
+    if (key === 'dealRank') return V27_RANK_ORDER[p.dealRank] || 0;
+    if (key === 'yieldValue') {
+      const v = (p.yieldGross != null && p.yieldGross > 0) ? p.yieldGross : (p.yieldEstimated || 0);
+      return v;
+    }
+    return p[key] != null ? p[key] : -Infinity;
+  };
+  return [...list].sort((a, b) => {
+    const va = getVal(a), vb = getVal(b);
+    if (va < vb) return -1 * sign;
+    if (va > vb) return 1 * sign;
+    return 0;
+  });
+}
+
+function v27RenderTable(list) {
+  const wrap = document.getElementById('v27TableView');
+  if (!wrap) return;
+  const sorted = v27SortProps(list, v27TableSort);
+
+  const thead = V27_TABLE_COLUMNS.map(col => {
+    if (!col.sortable) return `<th class="${col.cls}">${col.label}</th>`;
+    const sorted = v27TableSort && v27TableSort.key === col.key;
+    const arrow = sorted ? (v27TableSort.dir === 'asc' ? '▲' : '▼') : '↕';
+    return `<th class="${col.cls} sortable ${sorted ? 'sorted' : ''}" data-sort-key="${col.key}">${col.label}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('');
+
+  const rows = sorted.map(p => {
+    const yv = (p.yieldGross != null && p.yieldGross > 0) ? p.yieldGross : p.yieldEstimated;
+    const isEst = !(p.yieldGross != null && p.yieldGross > 0) && p.yieldEstimated != null && p.yieldSourceConfidence !== 'actual';
+    const yieldText = yv != null && yv > 0 ? (yv.toFixed(2) + '%' + (isEst ? '<span class="yield-est" style="margin-left:2px">推</span>' : '')) : '—';
+    const priceText = p.priceText || (p.price ? `${Math.round(p.price / 10000).toLocaleString()}万円` : '—');
+    const walkText = (typeof p.walkMinutes === 'number' && p.walkMinutes > 0) ? `${p.walkMinutes}分` : '—';
+    const ageText = p.age != null ? `${p.age}年` : '—';
+    const cityShort = (p.city || '').replace('福岡市', '');
+    const typeShort = (p.propertyType || '').replace('売り', '').replace('マンション', 'マ').slice(0, 6);
+    const name = escapeHtml(p.name || '—');
+    const rankBadge = `<span class="rank-badge rank-${p.dealRank === 'N/A' ? 'NA' : (p.dealRank || 'NA')}">${p.dealRank || 'N/A'}</span>`;
+    const radarMini = v27RadarSVG(p.personaStars || {}, 36, { mini: true });
+    const isFav = isFavorite(p.id);
+    const favBtn = `<button class="${isFav ? 'on' : ''}" data-fav-toggle="${p.id}" title="お気に入り" aria-label="お気に入り">
+      <svg fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </button>`;
+    const linkCell = `<a href="${p.sourceUrl}" target="_blank" rel="noopener" title="ソースで開く" aria-label="ソースで開く" onclick="event.stopPropagation()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>`;
+    return `<tr data-property-url="${p.sourceUrl}">
+      <td class="col-rank">${rankBadge}</td>
+      <td class="col-name" title="${name}">${name}</td>
+      <td class="col-city">${escapeHtml(cityShort || '—')}</td>
+      <td class="col-type">${escapeHtml(typeShort || '—')}</td>
+      <td class="col-price">${priceText}</td>
+      <td class="col-yield">${yieldText}</td>
+      <td class="col-age">${ageText}</td>
+      <td class="col-walk">${walkText}</td>
+      <td class="col-persona">${radarMini}</td>
+      <td class="col-score">${p.dealScore != null ? p.dealScore : '—'}</td>
+      <td class="col-fav">${favBtn}</td>
+      <td class="col-link">${linkCell}</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="v27-table" role="table">
+    <thead><tr>${thead}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+
+  // イベント委譲で列ヘッダソート・行クリック・お気に入り
+  wrap.querySelectorAll('thead th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sortKey;
+      if (v27TableSort && v27TableSort.key === key) {
+        v27TableSort.dir = v27TableSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        v27TableSort = { key, dir: (key === 'price' || key === 'age' || key === 'walkMinutes') ? 'asc' : 'desc' };
+      }
+      v27RenderTable(displayedProperties);
+    });
+  });
+  wrap.querySelectorAll('tbody tr').forEach(tr => {
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('button, a')) return;
+      const url = tr.dataset.propertyUrl;
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+  });
+  wrap.querySelectorAll('[data-fav-toggle]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFav(btn.dataset.favToggle);
+      btn.classList.toggle('on');
+    });
+  });
+}
+
+function v27SetViewMode(mode) {
+  v27ViewMode = (mode === 'table') ? 'table' : 'card';
+  const btnCard = document.getElementById('v27ViewCard');
+  const btnTable = document.getElementById('v27ViewTable');
+  if (btnCard) {
+    btnCard.classList.toggle('active', v27ViewMode === 'card');
+    btnCard.setAttribute('aria-pressed', v27ViewMode === 'card' ? 'true' : 'false');
+  }
+  if (btnTable) {
+    btnTable.classList.toggle('active', v27ViewMode === 'table');
+    btnTable.setAttribute('aria-pressed', v27ViewMode === 'table' ? 'true' : 'false');
+  }
+  // 再描画（現在の displayedProperties をそのまま使う）
+  renderCards();
+}
+
+// ---- v2.7: applyFiltersAndSort 拡張（post-filter でプリセットの特殊条件を当てる） ----
+const v27OriginalApply = applyFiltersAndSort;
+applyFiltersAndSort = function v27WrappedApply() {
+  v27OriginalApply.apply(this, arguments);
+  // プリセットの postFilter がある場合はさらに絞り込み
+  const preset = v27ActivePreset && V27_PRESETS[v27ActivePreset];
+  if (preset && preset.postFilter && Array.isArray(displayedProperties)) {
+    displayedProperties = displayedProperties.filter(preset.postFilter);
+    renderCards();
+  }
+};
+
+// ---- v2.7 初期化（イベント結線） ----
+document.querySelectorAll('.v27-preset-btn[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => v27TogglePreset(btn.dataset.preset));
+});
+const v27SaveBtn = document.getElementById('v27SaveFilterBtn');
+if (v27SaveBtn) v27SaveBtn.addEventListener('click', v27SaveCurrentFilter);
+
+const v27SavedChipsContainer = document.getElementById('v27SavedChips');
+if (v27SavedChipsContainer) {
+  v27SavedChipsContainer.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('[data-saved-del]');
+    if (delBtn) {
+      e.stopPropagation();
+      v27DeleteSaved(delBtn.dataset.savedDel);
+      return;
+    }
+    const chip = e.target.closest('[data-saved-id]');
+    if (chip) v27RestoreSaved(chip.dataset.savedId);
+  });
+}
+
+const v27BtnCard = document.getElementById('v27ViewCard');
+const v27BtnTable = document.getElementById('v27ViewTable');
+if (v27BtnCard) v27BtnCard.addEventListener('click', () => v27SetViewMode('card'));
+if (v27BtnTable) v27BtnTable.addEventListener('click', () => v27SetViewMode('table'));
+
+// 起動時: 保存済みチップを描画
+v27RenderSavedChips();
 
 // Init
 updateFavCount();
