@@ -3,14 +3,15 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # paths と paths-ignore は同時指定不可（workflow 構文エラー）のため、
+    # paths 内で除外パターン（!）を使う。
+    # scrape-daily.yml が properties.json を自前で deploy するため、
+    # データ更新 push で deploy-pages.yml が起動すると concurrency 衝突で
+    # scrape の Deploy が cancel される（NFR-003 阻害要因）。
     paths:
       - "static/**"
+      - "!static/data/**"
       - ".github/workflows/deploy-pages.yml"
-    paths-ignore:
-      # scrape-daily.yml が properties.json を自前で deploy するため、
-      # データ更新 push で deploy-pages.yml が起動すると concurrency 衝突で
-      # scrape の Deploy が cancel される（NFR-003 阻害要因）。
-      - "static/data/**"
   workflow_dispatch:
 
 permissions:
