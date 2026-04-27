@@ -23,7 +23,10 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 4/21〜4/26 で 6日連続 cancelled。HOME'S 1,485件取得（v2.6 拡張）+ AI reasons
+    # 生成（差分継承 70% でも 100-200件は再生成）で 20分を超過。
+    # NFR-003（週3回更新）達成のため 60分に延長。
+    timeout-minutes: 60
 
     # Pages デプロイ URL をジョブ環境として公開
     environment:
