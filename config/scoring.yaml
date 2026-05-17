@@ -257,7 +257,7 @@ ai_reasons:
   retries:
     max_regen: 1                     # PRD AC-010-3 厳守
   validation:
-    min_total_chars: 120             # PRD §5.3.2 (合計字数下限)
+    min_total_chars: 100             # 2026-05-17 hotfix: 120→100 (PRD §5.3.2 緩和。境界119字 rejected を救済)
     max_total_chars: 180             # PRD §5.3.2 (合計字数上限)
     expected_lines: 3
     forbidden_words:
